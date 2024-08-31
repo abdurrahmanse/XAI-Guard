@@ -11,11 +11,11 @@
 
 @font-face {
     font-family: "flaticon_garvina";
-    src: url("../fonts/flaticon_garvina_8fd6ad649392dad8878d58b475653156.woff2") format("woff2"),
-url("../fonts/flaticon_garvina_8fd6ad649392dad8878d58b475653156.woff") format("woff"),
-url("../fonts/flaticon_garvina_8fd6ad649392dad8878d58b475653156.eot#iefix") format("embedded-opentype"),
-url("../fonts/flaticon_garvina_8fd6ad649392dad8878d58b475653156.ttf") format("truetype"),
-url("../fonts/flaticon_garvina_8fd6ad649392dad8878d58b475653156.svg#flaticon_garvina") format("svg")
+    src: url("../fonts/flaticon_garvina.woff2?8fd6ad649392dad8878d58b475653156") format("woff2"),
+url("../fonts/flaticon_garvina.woff?8fd6ad649392dad8878d58b475653156") format("woff"),
+url("../fonts/flaticon_garvina.eot?8fd6ad649392dad8878d58b475653156#iefix") format("embedded-opentype"),
+url("../fonts/flaticon_garvina.ttf?8fd6ad649392dad8878d58b475653156") format("truetype"),
+url("../fonts/flaticon_garvina.svg?8fd6ad649392dad8878d58b475653156#flaticon_garvina") format("svg")
 }
 
 i[class^="flaticon-"]:before, i[class*=" flaticon-"]:before {

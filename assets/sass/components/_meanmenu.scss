@@ -1,0 +1,216 @@
+@use "../utilities" as *;
+
+/**----------------------------------------
+START: Theme Meanmenu CSS
+----------------------------------------*/
+.vw-bottom-content-area {
+	border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+	padding-bottom: 30px;
+	@media #{$md, $sm, $xs} {
+		padding-bottom: 15px;
+	}
+	@media #{$xs} {
+		padding-top: 15px;
+	}
+}
+.bottom-content-area {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+}
+.menu-area {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 130px;
+	@media #{$xl} {
+		gap: 50px;
+	}
+	@media #{$lg} {
+		gap: 25px;
+	}
+}
+.vw-menu-area {
+	ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 40px;
+		align-items: center;
+		@media #{$xl} {
+			gap: 35px;
+		}
+		@media #{$lg} {
+			gap: 24px;
+		}
+		li {
+			position: relative;
+			z-index: 1;
+			a {
+				color: var(--vw-color-common-white);
+				transition: 0.4s;
+				position: relative;
+				padding: 15px 0;
+				transition: 0.4s;
+				display: block;
+				&::before {
+					position: absolute;
+					content: "";
+					width: 9px;
+					height: 2px;
+					border-radius: 15px;
+					top: 50%;
+					transform: translateY(-50%);
+					left: -15px;
+					background: var(--vw-color-theme-primary);
+					opacity: 0;
+					visibility: hidden;
+					z-index: 2;
+					@media #{$lg} {
+						left: -15px;
+					}
+				}
+			}
+			&.current-menu-item,
+			&:hover {
+				a {
+					color: var(--vw-color-theme-primary);
+					&::before {
+						opacity: 1;
+						visibility: visible;
+					}
+					&::after {
+						color: var(--vw-color-theme-primary);
+					}
+				}
+			}
+			&.has-dropdown {
+				> a {
+					position: relative;
+					z-index: 1;
+					padding-right: 20px;
+					&::after {
+						position: absolute;
+						content: "\f107";
+						top: 50%;
+						transform: translateY(-50%);
+						right: 0;
+						font-family: "Font Awesome 6 Pro";
+						transition: 0.1s;
+						line-height: 1;
+					}
+				}
+			}
+			&:last-child {
+				margin-right: 0;
+			}
+			> .sub-menu {
+				text-align: left;
+				margin: 0;
+				list-style: none;
+				background: var(--vw-color-theme-secondary);
+				position: absolute;
+				opacity: 0;
+				padding: 10px 0;
+				visibility: hidden;
+				z-index: 100;
+				transition: 0.6s;
+				width: 230px;
+				box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+				gap: 0;
+				transform: translateY(20px);
+				top: 100%;
+				display: block;
+				left: 0;
+				pointer-events: none;
+				&::before {
+					position: absolute;
+					left: 0;
+					top: 0;
+					width: 0;
+					height: 2px;
+					background: var(--vw-color-theme-primary);
+					content: "";
+					transition: 0.6s;
+				}
+				> li {
+					display: block;
+					width: 100%;
+					margin-right: 0;
+					transition: 0.4s;
+					position: relative;
+					z-index: 1;
+					> a {
+						position: relative;
+						padding: 8px 20px;
+						display: block;
+						color: var(--vw-color-common-white);
+						&::before {
+							content: "";
+							width: 0;
+							height: 2px;
+							background: var(--vw-color-theme-primary);
+							position: absolute;
+							top: 50%;
+							left: 0;
+							transform: translateY(-50%);
+							transition: 0.4s;
+						}
+					}
+					&:last-child {
+						padding-bottom: 0;
+					}
+
+					&.has-dropdown {
+						> a {
+							&::after {
+								content: "\f105";
+								right: 10px;
+								color: var(--vw-color-common-white);
+							}
+						}
+					}
+					&.current-menu-item,
+					&:hover {
+						padding-left: 15px;
+						> a {
+							color: var(--vw-color-theme-primary);
+							&::before {
+								opacity: 1;
+								visibility: visible;
+								width: 14px;
+							}
+							&::after {
+								color: var(--vw-color-theme-primary);
+							}
+						}
+					}
+
+					> .sub-menu {
+						left: 100%;
+						top: 0;
+					}
+				}
+			}
+			&:hover {
+				> .sub-menu {
+					opacity: 1;
+					visibility: visible;
+					transform: translateY(-5px);
+					pointer-events: inherit;
+					&::before {
+						width: 100%;
+					}
+				}
+			}
+		}
+	}
+}
+
+/* !END: Theme Meanmenu CSS */
+
+
+

@@ -1,0 +1,73 @@
+@use "../utilities" as *;
+
+/**----------------------------------------
+START: Theme Header CSS
+----------------------------------------*/
+.header-area {
+    background-color: #131313;
+    padding-top: 55px;
+    padding-left: 45px;
+    padding-right: 135px;
+    padding-bottom: 30px;
+    .logo {
+        position: relative;
+        z-index: 2;
+    }
+    .header-right {
+        .menu-button {
+            display: none;
+        }
+    }
+    @media #{$xxxl} {
+        
+    }
+    @media #{$xxl, $xl, $lg} {
+        
+    }
+    @media #{$md, $sm, $xs} {
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 25px;
+        .header-right {
+            .menu-button {
+                display: inline-block;
+            }
+            .vw-btn-primary {
+                display: none;
+            }
+        }
+    }
+}
+.header-inner {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+/**----------------------------------------
+Mainmenu
+----------------------------------------*/
+.header-left {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    margin-right: 170px;
+}
+.mainmenu {
+    ul {
+        display: flex;
+        column-gap: 80px;
+        li {
+            a {
+                font-weight: 500;
+                color:#ffffff;
+            }
+        }
+    }
+}

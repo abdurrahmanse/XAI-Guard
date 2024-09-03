@@ -1,0 +1,346 @@
+@use "../utilities" as *;
+
+/**----------------------------------------
+Service Area 1 CSS
+----------------------------------------*/
+.service-area {
+    background-color: var(--vw-color-bg-1);
+    padding-top: 115px;
+    padding-bottom: 60px;
+    @media #{$lg, $md} {
+        padding-top: 100px;
+    }
+    @media #{$sm, $xs} {
+        padding-top: 80px;
+    }
+}
+.service-section-title {
+    margin-bottom: 135px;
+}
+.service-list {
+    display: flex;
+    justify-content: center;
+    padding-left: 200px;
+    padding-right: 85px;
+    ul {
+        margin: 0;
+        padding: 0;
+        padding-top: 0px;
+        list-style: none;
+        width: 100%;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        row-gap: 20px;
+        border-top: 1px solid #448C7466;
+        padding-top: 60px;
+        li {
+            position: relative;
+            width: 100%;
+            cursor: pointer;
+            transition: all .3s ease-in-out;
+            &::before {
+                background-color:#448C7466;
+                display: block;
+                width: 100%;
+                height: 1px;
+                position: absolute;
+                left: 0;
+                bottom: 24px;
+                content: "";
+                z-index: 1;
+            }
+            a {
+                display: block;
+                font-family: var(--vw-ff-heading);
+                font-weight: var(--vw-fw-bold);
+                font-size: 55px;
+                text-transform: uppercase;
+                color:#ffffff;
+                position: relative;
+                &:hover {
+                    -webkit-text-stroke: 1px #448C74;
+                    -webkit-text-fill-color: transparent;
+                }
+                span {
+                    display: inline-block;
+                    margin-right: 10px;
+                    -webkit-text-stroke: 1px #448C74;
+                    -webkit-text-fill-color: transparent;
+                }
+                &:hover {
+                    span {
+                        -webkit-text-stroke: unset;
+                        -webkit-text-fill-color: #448C74;
+                    }
+                }
+            }
+            .services-reel-image {
+                position: absolute;
+                top: -130px;
+                right: 0;
+                z-index: 1;
+                visibility: hidden;
+                opacity: 0;
+                transform: translateY(40px);
+                transform-origin: top center;
+                border-radius: 100%;
+                overflow: hidden;
+                display: block;
+                width: 338px;
+                height: 338px;
+                transition: .35s cubic-bezier(.25,.46,.45,.94);
+                transition-duration: 0.35s;
+                -webkit-clip-path: circle(0 at 50% 50%);
+                clip-path: circle(0 at 50% 50%);
+            }
+            &:hover {
+                .services-reel-image {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    opacity: 1;
+                    transform: translateY(0) skewY(0) scaleZ(1);
+                    visibility: visible;
+                    transition-duration: .7s;
+                    z-index: 5;
+                    -webkit-clip-path: circle(50% at 50% 50%);
+                    clip-path: circle(50% at 50% 50%);
+                }
+            }
+        }
+    }
+    @media #{$xl} {
+        padding-left: 100px;
+    }
+    @media #{$lg} {
+        padding-right: 15px;
+        padding-left: 20px;
+    }
+    @media #{$md, $sm, $xs} {
+        ul {
+            border-top:0;
+            padding-top: 0;
+        }
+        padding-left: 0;
+        padding-right: 0;
+    }
+    @media #{$xl, $lg, $md} {
+        ul {
+            li {
+                &::before {
+                    bottom: 20px;
+                }
+                a {
+                    font-size: 48px;
+                }
+                .services-reel-image {
+                    width:250px;
+                    height:250px;
+                    top:-80px;
+                }
+            }
+        }
+    }
+
+    @media #{$sm, $xs} {
+        ul {
+            border-top: 0;
+            padding-top: 0;
+            li {
+                &::before {
+                    bottom: 12px;
+                }
+                a {
+                    font-size: 27px;
+                }
+                .services-reel-image {
+                    width:200px;
+                    height:200px;
+                    top:-80px;
+                }
+            }
+        }
+    }
+}
+.service-encourage-title {
+    text-align: center;
+    margin-top: 105px;
+    h2 {
+        font-size: 55px;
+    }
+    .service-stroke-text {
+        -webkit-text-stroke: 1px rgba(255, 255, 255, 0.4);
+        -webkit-text-fill-color: transparent;
+    }
+    img {
+        display: inline-block;
+        margin: 0 15px;
+    }
+    .thin-text {
+        font-weight: 200;
+    }
+    @media #{$xl} {
+        h2 {
+            font-size: 48px;
+        }
+    }
+    @media #{$lg, $md} {
+        h2 {
+            font-size: 36px;
+        }
+    }
+    @media #{$sm, $xs} {
+        margin-top: 65px;
+        h2 {
+            font-size: 30px;
+        }
+        img {
+            margin: 10px 15px;
+        }
+    }
+}
+
+.counter-section {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+}
+.single-counterup {
+    position: relative;
+    .counterup-number {
+        font-size: 150px;
+        font-weight: bold;
+        -webkit-text-stroke: 1px #448C74;
+        -webkit-text-fill-color: transparent;
+    }
+    .counterup-title {
+        display: inline-block;
+        font-family: var(--vw-ff-heading);
+        font-size: 16px;
+        color: #ffffff;
+        position: absolute;
+        top: 0%;
+        bottom: 0;
+        margin: auto;
+        left: 0;
+        right: 0;
+        margin: auto;
+        background-color: #131313;
+        height: 30px;
+        max-width: 135px;
+        text-align: center;
+    }
+    @media #{$xl, $lg} {
+        .counterup-number {
+            font-size: 100px;
+        }
+    }
+    @media #{$md, $sm, $xs} {
+        .counterup-number {
+            font-size: 80px;
+        }
+        .counterup-title {
+            font-size: 14px;
+            height: 21px;
+            max-width: 110px;
+        }
+    }
+}
+
+/**----------------------------------------
+Service Area 2 CSS
+----------------------------------------*/
+.service-area-2 {
+    background-color: #000004;
+    padding-top: 90px;
+    padding-bottom: 20px;
+}
+.service-single {
+    position: relative;
+    margin-bottom: 115px;
+    .service-single-inner {
+        background-color: #000004;
+        position: relative;
+        z-index: 1;
+        padding-left: 5px;
+    }
+    .service-number {
+        -webkit-text-stroke: 1px #448C74;
+        -webkit-text-fill-color: transparent;
+        font-size: 120px;
+        font-weight: 700;
+        line-height: 1;
+        position: absolute;
+        top: -70px;
+    }
+    .single-service-title {
+        font-size: 34px;
+        line-height: 1.2;
+        span {
+            font-weight: 200;
+        }
+    }
+    @media #{$sm, $xs} {
+        .service-number {
+            font-size: 56px;
+            position: unset;
+        }
+    }
+}
+
+/**----------------------------------------
+Service Area 3 CSS
+----------------------------------------*/
+.service-area-3 {
+    background: #171415;
+    padding-bottom: 0;
+}
+.service-list {
+    &.style-3 {
+        ul {
+            li {
+                transition: .5s;
+                a {
+                    transition: .3s;
+                    .service-icon {
+                        margin-right: 70px;
+                        color:#448C74;
+                    }
+                    span {
+                        float: right;
+                    }
+                    &:hover {
+                        padding-left: 50px;
+                    }
+                }
+                &::before {
+                    background-color:#448C7466;
+                }
+                &::after {
+                    background-color:#ffffff;
+                    display: block;
+                    width: 0;
+                    height: 1px;
+                    position: absolute;
+                    right: 0;
+                    bottom: 24px;
+                    content: "";
+                    z-index: 2;
+                }
+                &:hover {
+                    &::before {
+                        width:0;
+                    }
+                    &::after {
+                        width:100%;
+                    }
+                }
+            }
+        }
+    }
+}

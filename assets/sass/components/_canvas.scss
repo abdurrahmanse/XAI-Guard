@@ -1,0 +1,286 @@
+@use "../utilities" as *;
+
+/**----------------------------------------
+START: Theme Canvas CSS
+----------------------------------------*/
+.vw-overlay-canvas {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	background-color: rgba(0, 0, 0, 0.3);
+	z-index: 5;
+	opacity: 0;
+	visibility: hidden;
+	transition: all 0.3s ease-in;
+}
+
+.vw-offcanvas-area {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	z-index: 5;
+	background: #111;
+	padding: 30px 30px 30px;
+	right: -100%;
+	opacity: 0;
+	visibility: visible;
+	overflow-y: scroll;
+	-webkit-transition: 0.8s;
+	transition: 0.8s;
+	display: flex;
+	padding: 100px;
+	column-gap: 100px;
+	@media #{$xs} {
+		padding: 30px 20px;
+	}
+	.des {
+		margin-bottom: 15px;
+		color: var(--vw-color-common-white);
+	}
+	.canvas-title {
+		position: relative;
+		z-index: 1;
+		margin-bottom: 25px;
+		&::before {
+			position: absolute;
+			content: "";
+			left: 0;
+			bottom: -5px;
+			width: 88px;
+			height: 2px;
+			background: var(--vw-color-theme-primary);
+			z-index: 2;
+		}
+		.title {
+			color: var(--vw-color-common-white);
+		}
+	}
+	.contact-info-list {
+		margin-bottom: 30px;
+	}
+	.offcanvas-icon {
+		font-size: 40px;
+		color: var(--vw-secondary-color);
+		transition: 0.4s;
+		i {
+			color: var(--vw-color-common-white);
+			transform: rotate(90deg);
+			&:hover {
+				color: var(--vw-color-theme-primary);
+			}
+		}
+	}
+	.vw-offcanvas-header {
+		border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+		padding-bottom: 25px;
+		margin-bottom: 45px;
+		position: absolute;
+		right: 35px;
+		top: 0;
+	}
+	.vw-search-box {
+		position: relative;
+		margin-bottom: 40px;
+		form {
+			input {
+				border: 1px solid var(--vw-primary-color);
+				width: 100%;
+				padding: 13px 15px;
+				border-radius: 3px;
+				font-size: 17px;
+				&::placeholder {
+					color: var(--vw-color-text-body);
+				}
+				&::-ms-input-placeholder {
+					color: var(--vw-color-text-body);
+				}
+			}
+			a {
+				position: absolute;
+				right: 0;
+				top: 50%;
+				transform: translateY(-50%);
+				width: 57.2px;
+				height: 57.2px;
+				line-height: 57.2px;
+				border-radius: 0px 3px 3px 0px;
+				background: var(--vw-color-theme-primary);
+				font-size: 17px;
+				color: var(--vw-color-common-white);
+				text-align: center;
+				&:hover {
+					color: var(--vw-color-common-white);
+				}
+			}
+		}
+	}
+	.offcanvas-share {
+		margin-bottom: 45px;
+		ul {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 15px;
+			li {
+				a {
+					width: 24px;
+					height: 24px;
+					line-height: 24px;
+					align-items: center;
+					justify-content: center;
+					display: inline-flex;
+					border-radius: 50%;
+					color: var(--vw-color-common-black);
+					background: var(--vw-color-common-white);
+					position: relative;
+					z-index: 3;
+					font-size: 14px;
+					margin-left: 10px;
+					i {
+						color: var(--vw-color-common-black);
+					}
+					&:first-child {
+						margin-left: 0;
+					}
+					&:hover {
+						background-color: var(--vw-color-theme-primary);
+						color: var(--vw-color-common-white);
+						i {
+							color: var(--vw-color-common-white);
+						}
+					}
+				}
+			}
+		}
+	}
+	.contact-map {
+		iframe {
+			width: 400px;
+			height: 227px;
+		}
+	}
+}
+
+.canvas_expanded .vw-offcanvas-area {
+	right: 0;
+}
+
+.mean-container a.meanmenu-reveal {
+	display: none !important;
+}
+
+.canvas_expanded {
+	.vw-overlay-canvas,
+	.vw-offcanvas-area {
+		opacity: 1;
+		visibility: visible;
+	}
+}
+
+.mean-container {
+	a.meanmenu-reveal {
+		display: none !important;
+	}
+	.mean-nav {
+		ul {
+			li {
+				li {
+					margin-left: 15px;
+					a {
+						text-transform: capitalize;
+						padding: 15px 35px 12px 0;
+						width: 100%;
+						color: var(--vw-color-common-white);
+					}
+					li {
+						margin-left: 15px;
+						a {
+							text-transform: capitalize;
+							padding: 15px 0 12px 0;
+							width: 100%;
+							color: var(--vw-color-common-white);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+.mobile-navbar-menu {
+	overflow: hidden;
+	width:50%;
+	.mean-bar * {
+		-webkit-box-sizing: border-box;
+		box-sizing: border-box;
+	}
+	.mean-nav  {
+		> ul {
+			display: block !important;
+		}
+	}
+	.mean-bar {
+		background: transparent;
+		-webkit-box-sizing: border-box;
+		box-sizing: border-box;
+	}
+	.mean-nav {
+		background: transparent;
+		overflow: hidden;
+		margin-top: 0px;
+		margin-bottom: 20px;
+		ul {
+			li {
+				&:first-child {
+					border-top: none;
+				}
+				a {
+					color: var(--vw-color-common-white);
+					border-top: none;
+					padding: 14px 0;
+					width: 100%;
+					font-family: var(--vw-ff-heading);
+					font-weight: var(--vw-fw-regular);
+					border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+					font-size: 30px;
+					font-weight: 500;
+				}
+				a.mean-expand i.fa-plus {
+					display: block;
+				}
+
+				a.mean-expand i.fa-minus {
+					display: none;
+				}
+				a.mean-expand.mean-clicked i.fa-minus {
+					display: block;
+					color: var(--vw-color-theme-primary);
+				}
+				a.mean-expand.mean-clicked i.fa-plus {
+					display: none;
+				}
+			}
+		}
+	}
+	@media #{$sm, $xs} {
+		width:100%;
+		.mean-nav {
+			ul {
+				li {
+					a {
+						font-size: 16px;
+					}
+				}
+			}
+		}
+	}
+}
+
+/* !END: Theme Canvas CSS */

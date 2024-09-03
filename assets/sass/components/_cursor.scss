@@ -1,0 +1,58 @@
+/*==============================
+  MEGIC CURSOR START
+===============================*/
+.anim_line {
+    display: block;
+    overflow: hidden;
+  }
+  #magic-cursor {
+    position: relative;
+    z-index: 9999;
+  }
+  @media (max-width: 1040px) {
+    #magic-cursor {
+      display: none;
+    }
+  }
+  
+  #ball {
+    position: fixed;
+    display: block;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 1;
+  }
+  
+  .ball-drag,
+  .ball-view,
+  .ball-gallery {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    font-size: 20px;
+    color: #000;
+    height: 100%;
+  }
+  
+  .ball-view {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    padding: 0 5px;
+    color: #222;
+    height: 100%;
+    text-align: center;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  /*==============================
+    MEGIC CURSOR END
+  ===============================*/

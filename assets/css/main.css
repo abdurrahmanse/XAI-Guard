@@ -3479,7 +3479,7 @@ Home About 2 CSS
   font-size: 28px;
 }
 .section-title-about-2 .section-title-text .secondery-heading span {
-  font-weight: 600;
+  font-weight: 400;
 }
 .section-title-about-2 .section-title-text p {
   padding-left: 60px;
@@ -6859,7 +6859,7 @@ Footer CSS
 }
 
 .contact__page {
-  background: #171415;
+  background: #000004;
 }
 .address__block h4 {
   font-size: 28px;

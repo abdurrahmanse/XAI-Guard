@@ -155,3 +155,108 @@ Save it. Read it again in 6 months.
 - [ ] You have 3 topic ideas
 - [ ] You know basic ethics rules
 - [ ] You completed all 4 exercises
+
+---
+
+## 📘 Deep Dive: The Anatomy Of A Research Project
+
+> A more advanced view. Read this once you've done the basics above.
+
+### The "Research Diamond" — 4 Phases
+
+Most research projects follow this 4-phase shape. Knowing it helps you know where you are.
+
+```
+            ┌──────────┐
+            │ DISCOVER │   ← idea, lit review, gap-finding
+            └────┬─────┘
+                 ↓
+            ┌──────────┐
+            │  DESIGN  │   ← method, baselines, evaluation plan
+            └────┬─────┘
+                 ↓
+            ┌──────────┐
+            │ EXECUTE  │   ← run experiments, debug, iterate
+            └────┬─────┘
+                 ↓
+            ┌──────────┐
+            │  SHARE   │   ← paper, talk, code, dataset
+            └──────────┘
+```
+
+**DISCOVER (10-20% of time):** Read, brainstorm, find a gap.
+**DESIGN (10-15%):** Plan methods, baselines, metrics.
+**EXECUTE (50-60%):** Run experiments, debug, iterate. This is where most of your time goes.
+**SHARE (15-25%):** Write, present, publish.
+
+### The 4 Types Of Contributions
+
+In a Data Science paper, your contribution usually falls into one of these:
+
+| Type | Example | Easiest? |
+|---|---|---|
+| **New method** | A new neural architecture | ❌ Hard |
+| **New application** | Apply LLM to medical records | ✅ Medium |
+| **New analysis** | Error analysis of GPT-4 on X task | ✅ Medium |
+| **New dataset** | Release a labeled corpus | ⚠️ Hard (needs data) |
+| **New evaluation** | A better metric for Y | ⚠️ Hard (needs buy-in) |
+| **Stronger baseline** | A really good reproducible baseline | ✅ Easy and useful |
+| **Survey / review** | A systematic review of 100 papers | ✅ Easy to start, hard to finish |
+
+**For an MSc thesis, "new application" or "stronger baseline" is totally fine.** You don't need to invent a new architecture.
+
+### The "Good Enough" Bar
+
+| What "good" looks like for an MSc | What reviewers want for top venues |
+|---|---|
+| 1 clear research question | Multiple sub-questions, each answered |
+| 1 dataset, 1-2 baselines | 3+ datasets, 5+ baselines, SOTA comparison |
+| 1 metric reported properly | 5+ metrics, ablations, statistical tests |
+| Reproducible code on GitHub | Reproducible code + Docker + configs |
+| 1 paper draft | 2+ papers (workshop + main venue) |
+| 1 presentation | Talk + poster + demo |
+
+**Don't compare yourself to PhD students with 5 years.** Aim for "good enough" + "honest."
+
+### The 5 Things That Will Go Wrong (and what to do)
+
+| Problem | Solution |
+|---|---|
+| "My model doesn't beat the baseline" | Try 3 more baselines; check data leakage; use a different metric |
+| "I don't have enough data" | Use transfer learning; augment; use public data |
+| "It takes 10 hours to run" | Use a subset; use a smaller model; use Colab GPU |
+| "I can't find related work" | Search Google Scholar "since 2023" + arXiv; ask your advisor |
+| "I have no idea what to do" | Read 1 paper, do 1 experiment, write 1 sentence — repeat |
+
+### The "Just Start" Rule
+
+Most students wait until they have the perfect plan. **Don't.** Your plan will change. The fastest way to learn what to do is to start doing something — and then adjust.
+
+The minimum viable first week:
+
+1. Pick a topic
+2. Find 1 public dataset
+3. Run 1 baseline
+4. Write 1 paragraph
+
+That's it. Now you have a project. Everything else is iteration.
+
+### Resources For Going Deeper
+
+| Resource | Use |
+|---|---|
+| "How to Write a Good Scientific Paper" by Chris A. Mack | Writing |
+| "Deep Learning" by Goodfellow, Bengio, Courville | Theory |
+| "The Elements of Statistical Learning" (Hastie, Tibshirani, Friedman) | Classical ML |
+| Andrew Ng's Machine Learning Yearning (free PDF) | ML strategy |
+| Justin Solomon's "6.S898 Deep Learning" (MIT OCW) | Applied DL |
+
+---
+
+## ✅ Advanced "Done When"
+
+- [ ] You can name the 4 phases of the research diamond
+- [ ] You can name 3 types of research contributions
+- [ ] You know the "good enough" bar for an MSc
+- [ ] You can list 3 things that will go wrong and how to handle them
+- [ ] You started your first baseline (even if ugly)

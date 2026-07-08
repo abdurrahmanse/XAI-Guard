@@ -156,3 +156,109 @@ Save in: `my_first_paper_summary.md`
 - [ ] You have a reading spreadsheet
 - [ ] You installed Zotero
 - [ ] You completed all 5 exercises
+
+---
+
+## 📝 Note-Taking Template (copy this for every paper)
+
+Save this as `paper_notes/<year>_<author>_<keyword>.md`:
+
+```markdown
+# [Title]
+
+**Authors:** ...
+**Venue:** NeurIPS 2023
+**Link:** https://arxiv.org/abs/...
+**Date read:** 2026-07-08
+
+## 1-Pass Summary (10 min)
+- **Problem:** ...
+- **Method:** ...
+- **Result:** ...
+- **My take:** ...
+
+## 2-Pass Notes (1 hour)
+- **Key idea:** ...
+- **Why it matters:** ...
+- **How it works (in 3 sentences):** ...
+- **Datasets used:** ...
+- **Baselines compared:** ...
+- **Main metric reported:** ...
+- **Limitations I see:** ...
+
+## 3-Pass Notes (3 hours)
+- **Assumptions:** ...
+- **Math I had to re-derive:** ...
+- **What would break this:** ...
+- **Could I reproduce this in 1 week?:** ...
+- **How does it connect to my work?:** ...
+
+## Quotes (use exact wording for citations)
+> "..." (p. 3)
+
+## Questions for my advisor / myself
+1. ...
+2. ...
+```
+
+## 🗂️ Folder Layout For Your Reading
+
+```
+literature/
+├── papers/             ← PDFs (Zotero manages this)
+├── notes/              ← your .md notes (one per paper)
+├── summary.md          ← 1-line summary of every paper
+├── comparison_table.md ← methods × datasets × metrics
+└── gap.md              ← the gap you found (1 sentence)
+```
+
+## 📊 How To Build A Comparison Table
+
+After 10+ papers, build a table like this (saved as `literature/comparison_table.md`):
+
+| Paper | Year | Method | Backbone | Dataset | Metric | Reported Score | Limitations |
+|---|---|---|---|---|---|---|---|
+| Smith | 2023 | BERT-base | BERT | FakeNewsNet | F1 | 0.85 | no domain adapt |
+| Lee | 2024 | RoBERTa + data aug | RoBERTa | FakeNewsNet | F1 | 0.87 | small aug set |
+| Park | 2024 | LLM zero-shot | GPT-3.5 | FakeNewsNet | F1 | 0.83 | closed model |
+| **You (planned)** | 2026 | ? | ? | FakeNewsNet | F1 | ? | ? |
+
+**The last row is your thesis.** What number do you need to beat to make a contribution?
+
+## 🔔 Set Up Alerts (do this once)
+
+| Alert | How |
+|---|---|
+| Google Scholar | scholar.google.com → create alert for "your topic" |
+| arXiv | arxiv.org → set up email alerts in `cs.LG`, `cs.CL`, `cs.CV` |
+| Semantic Scholar | semanticscholar.org → follow authors |
+| Twitter / X | follow the top 10 authors in your field |
+| Connected Papers | connectedpapers.com → find related work |
+| Litmaps | litmaps.com → visualize a paper's neighborhood |
+
+## 🧠 How To Read 100 Papers In A Year
+
+| Time budget | Target |
+|---|---|
+| 1 paper / week (2-3 hrs) | Conservative — 50 / year |
+| 1 paper / 2 days | Strong — 100 / year |
+| 1 paper / day (lite) | Hero mode — 200+ / year |
+
+**Realistic target for MSc Year 1:** 50 papers. You'll re-read ~10 of them in Year 2.
+
+## 🗣️ Paper-Reading Groups
+
+Find 2-3 friends. Each week:
+1. One person presents 1 paper (10 min)
+2. Others ask questions (10 min)
+3. Everyone takes notes
+
+**This works.** A paper you discuss is a paper you remember.
+
+## ✅ Advanced "Done When"
+
+- [ ] You have a paper-notes template
+- [ ] You have a `literature/` folder with notes
+- [ ] You built a comparison table of 10+ papers
+- [ ] You set up Google Scholar alerts
+- [ ] You read 50 papers in your first year

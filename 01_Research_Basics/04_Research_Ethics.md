@@ -193,3 +193,165 @@ Why: Must cite data sources. Plagiarism rule.
 - [ ] You understand plagiarism types
 - [ ] You know your university's ethics policy
 - [ ] You completed all 5 exercises
+
+---
+
+## 🏛️ Deeper Ethics For Data Science Research
+
+### 1. Data Ethics
+
+| Principle | What It Means | Example |
+|---|---|---|
+| Consent | People agreed to share their data | Survey respondents signed a form |
+| Anonymity | No way to identify a person from your data | Strip names, IDs, exact dates |
+| Privacy | Sensitive info is protected | Encrypt medical records at rest |
+| License | You have the right to use the data | Check "Terms of Use" before scraping |
+| Fairness | Your model doesn't discriminate | Check error rates across subgroups |
+
+### 2. Algorithmic Bias
+
+**The 3 types of bias to watch for:**
+
+| Bias | What It Is | Example |
+|---|---|---|
+| **Historical bias** | World is biased; data reflects that | Hiring data from a sexist era |
+| **Sampling bias** | Your data isn't representative | All images taken in daylight |
+| **Algorithmic bias** | The model amplifies the bias | Loan model denies minorities more often |
+
+**How to detect:** Compute metrics per subgroup (gender, race, age). If one group's accuracy is much lower → bias.
+
+```python
+# Fairness check
+for subgroup in df["gender"].unique():
+    mask = df["gender"] == subgroup
+    score = f1_score(y[mask], y_pred[mask], average="macro")
+    print(f"{subgroup}: F1 = {score:.3f}")
+```
+
+### 3. Dual Submission
+
+**Never submit the same paper to 2 venues at once.** It wastes reviewers' time and can get you banned.
+
+**Allowed:**
+- Workshop paper → later expanded to a conference paper (cite the workshop)
+- arXiv preprint → submit to conference (cite the arXiv)
+- Conference paper → expanded to a journal version (with new content)
+
+**Not allowed:**
+- Same paper, two venues, same time
+- Trivial extension (just adding a paragraph)
+
+### 4. Authorship (Who is an author?)
+
+| Should be an author | Should NOT be an author |
+|---|---|
+| Wrote significant text | Just gave feedback |
+| Did the experiments | Just provided data |
+| Designed the method | Just paid for it |
+| Wrote the code | Just edited grammar |
+| Analyzed the results | A friend who "helped" |
+
+**CRediT taxonomy** is the standard:
+
+- Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Writing – original draft, Writing – review & editing, Visualization, Supervision, Project administration, Funding acquisition
+
+### 5. Conflicts Of Interest (COI)
+
+Disclose if any of:
+- You work at the same company as the reviewer
+- You collaborated with the reviewer in the last 2 years
+- You are family with the reviewer
+- The reviewer is your advisor (or was)
+
+**When reviewing others' work:** Same rules apply — recuse yourself if you have a COI.
+
+### 6. Data With Human Subjects
+
+If your research involves **people** (surveys, interviews, behavior, medical data):
+
+- ✅ Get **IRB / ethics committee** approval (your university has one)
+- ✅ Get **informed consent** in writing
+- ✅ Anonymize / pseudonymize
+- ✅ Allow people to **withdraw** at any time
+- ✅ Store data securely (encrypted, access-controlled)
+- ✅ Keep data only as long as needed (GDPR: justified retention)
+
+### 7. The 7 Deadly Sins Of Research
+
+| Sin | What It Is | Why It's Bad |
+|---|---|---|
+| Fabrication | Making up data | Career-ending |
+| Falsification | Changing data to fit hypothesis | Career-ending |
+| Plagiarism | Copying without citation | Career-ending |
+| Self-plagiarism | Re-using your own work | Sometimes OK, sometimes not |
+| Salami slicing | 1 paper → 5 thin papers | Disliked, but not always wrong |
+| Gift authorship | Adding a name that did nothing | Misrepresents credit |
+| Ghost authorship | Hiding the real author | Misrepresents credit |
+
+### 8. AI Ethics (specifically for you)
+
+**Allowed:**
+- Brainstorming, explaining concepts, grammar checking
+- Writing boilerplate code that you then read and modify
+- Translating your own text
+- Summarizing papers (read the summary, cite the paper)
+
+**Not allowed (in most journals/conferences):**
+- Generating the whole paper text
+- Generating fake references
+- Submitting AI-generated code without review
+- Hiding AI use
+
+**Always:** Disclose AI use in your methods section, like:
+> "We used [ChatGPT/Claude] for [X] in [stage]. All output was reviewed and edited by the authors."
+
+**Check** your target venue's policy. They are increasingly strict.
+
+## 📚 Citation Cheat Sheet
+
+### APA (7th edition) — Psychology, Education
+```
+Smith, J., & Lee, A. (2024). Title of paper. Journal Name, 12(3), 45-67.
+https://doi.org/10.xxxx
+```
+
+### IEEE — Engineering, CS
+```
+[1] J. Smith and A. Lee, "Title of paper," Journal Name, vol. 12, no. 3,
+    pp. 45-67, 2024, doi: 10.xxxx.
+```
+
+### ACM — Computing
+```
+[1] John Smith and Alice Lee. 2024. Title of paper. Journal Name 12, 3,
+    Article 4 (March 2024), 23 pages. https://doi.org/10.xxxx
+```
+
+### BibTeX (use with LaTeX)
+```bibtex
+@article{smith2024title,
+  author  = {Smith, John and Lee, Alice},
+  title   = {Title of paper},
+  journal = {Journal Name},
+  year    = {2024},
+  volume  = {12},
+  number  = {3},
+  pages   = {45--67},
+  doi     = {10.xxxx}
+}
+```
+
+### Quick tools
+- **Zotero** (free) — auto-extract citations from PDFs
+- **Google Scholar "Cite"** — copy a ready-made citation
+- **DOI.org** — paste a DOI to get the full metadata
+- **Crossref API** — programmatic citation lookup
+
+## ✅ Advanced "Done When"
+
+- [ ] You can name the 3 types of algorithmic bias
+- [ ] You know the CRediT taxonomy for authorship
+- [ ] You can detect fairness issues in your model
+- [ ] You can write a citation in APA, IEEE, and ACM
+- [ ] You know your IRB process (if using human data)
+- [ ] You have an AI-use disclosure section ready

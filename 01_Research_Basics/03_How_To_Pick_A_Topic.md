@@ -181,3 +181,119 @@ Best regards,
 - [ ] You wrote a 1-page problem statement
 - [ ] A professor agreed to supervise
 - [ ] You completed all 5 exercises
+
+---
+
+## 🧠 The 4-Criteria Filter
+
+A good topic must pass ALL 4 filters. Test yours:
+
+| # | Criterion | Test |
+|---|---|---|
+| 1 | **Interesting to you** | Will you still care in 6 months? |
+| 2 | **Solves a real problem** | Does anyone care about the result? |
+| 3 | **Data is available** | Can you get the data legally + in time? |
+| 4 | **Doable in time** | Can you finish in 3-6 months? |
+
+If any one fails, drop the topic and pick another.
+
+## 🔍 The "Topic Sources" List (use these to find ideas)
+
+| Source | How To Use It |
+|---|---|
+| **Papers With Code SOTA** | paperswithcode.com/sota → see what's being solved |
+| **Kaggle competitions** | kaggle.com/competitions → trending problems |
+| **arXiv recent** | arxiv.org/list/cs.LG/2025 → last week's papers |
+| **AI conference deadlines** | aideadlin.es → see what areas are active |
+| **Your university research groups** | Read the lab pages, find an open problem |
+| **Industry pain points** | "ML for [X]" — find a X that's unsolved |
+| **Public datasets (UCI, Kaggle)** | A new dataset = a research opportunity |
+| **Your course projects** | Many theses start as good course projects |
+| **Failed papers** | A paper that didn't work → investigate why |
+| **Negative results** | "We tried X, it didn't work" is publishable |
+
+## ✍️ The "Research Question" Template
+
+Use this exact format. If you can't fill it, your topic is too vague.
+
+```
+Can [METHOD] improve [METRIC] for [PROBLEM] 
+    compared to [BASELINE] on [DATASET]?
+```
+
+**Examples:**
+
+| Method | Problem | Dataset | Baseline | Metric |
+|---|---|---|---|---|
+| Domain-adapted BERT | Fake news detection | FakeNewsNet | Standard BERT | F1 |
+| LSTM | Stock prediction | Tesla 5-yr | ARIMA | RMSE |
+| 3D CNN | Tumor segmentation | BraTS 2024 | 2D U-Net | Dice |
+| Transformer | Code summarization | Python corpus | LSTM | BLEU |
+
+If you can write this sentence, you have a topic.
+
+## 🌳 The "Topic Tree" (zoom in or out)
+
+```
+Healthcare
+├── Medical Imaging
+│   ├── X-ray → ?
+│   ├── MRI → ?
+│   └── CT → ?
+├── EHR data
+│   ├── Prediction → ?
+│   └── Risk scoring → ?
+└── Genomics
+    └── ...
+```
+
+Pick a branch. Then a leaf. Then a sub-leaf. That sub-leaf is your topic.
+
+## ⚖️ Comparing 3 Topic Candidates
+
+Use this matrix:
+
+| Criterion | Topic A | Topic B | Topic C |
+|---|---|---|---|
+| Novelty (1-5) | 4 | 3 | 5 |
+| Data availability (1-5) | 5 | 4 | 2 |
+| Advisor interest (1-5) | 5 | 3 | 4 |
+| Your interest (1-5) | 4 | 5 | 3 |
+| Doability (1-5) | 4 | 4 | 2 |
+| **Total** | **22** | **19** | **16** |
+
+**Pick the highest total.** If 2 are tied, pick the one with the highest "Your interest."
+
+## 📅 The "1-Week Topic Test"
+
+| Day | Task |
+|---|---|
+| Mon | Pick 3 candidate topics |
+| Tue | Search data for each |
+| Wed | Read 2 papers per topic (6 total) |
+| Thu | Email 2 professors per topic |
+| Fri | Pick the winner. Write a 1-page problem statement. |
+| Sat-Sun | Rest. Then start reading. |
+
+If after 1 week you don't have a winner, your filters are too strict. Loosen them.
+
+## 🤝 Picking An Advisor (quick guide)
+
+| What to look for | Red flags |
+|---|---|
+| Works in your topic area | Hasn't published in 3 years |
+| Has supervised MSc students before | Takes 2 months to reply to emails |
+| Has funding for your topic | Forces you to work on their pet project |
+| Respects your time | Wants daily 9am meetings |
+| Replies within 1 week | "Just figure it out" answers |
+
+**Email 5 professors, expect 2 to reply, meet 2, pick 1.**
+
+## ✅ Advanced "Done When"
+
+- [ ] Your topic passes the 4-criteria filter
+- [ ] You can write the "Can [METHOD] improve [METRIC]..." sentence
+- [ ] You used the topic tree to zoom in
+- [ ] You scored 3 candidates with the matrix
+- [ ] You did the 1-week topic test
+- [ ] An advisor said yes

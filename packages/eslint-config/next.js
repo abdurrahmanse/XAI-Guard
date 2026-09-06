@@ -9,7 +9,9 @@ import { config as baseConfig } from "./base.js";
  *
  * @type {import("eslint").Linter.Config[]}
  * */
+import { ignores } from "./ignores.js";
 export const nextJsConfig = [
+  { ignores },
   ...baseConfig,
   globalIgnores([
     // Default ignores of eslint-config-next:

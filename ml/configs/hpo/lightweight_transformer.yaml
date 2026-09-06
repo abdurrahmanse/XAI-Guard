@@ -1,0 +1,27 @@
+optimizer: Optuna
+trials: 30
+validation: Epoch-based
+early_stopping_patience: 5
+mixed_precision: true
+params:
+  d_model:
+    type: int
+    choices:
+    - 32
+    - 64
+  nhead:
+    type: int
+    choices:
+    - 2
+    - 4
+  num_layers:
+    type: int
+    range:
+    - 1
+    - 2
+  learning_rate:
+    type: float
+    range:
+    - 0.0001
+    - 0.005
+    scale: log

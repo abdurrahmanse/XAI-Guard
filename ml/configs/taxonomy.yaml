@@ -1,0 +1,31 @@
+taxonomy:
+- DDOS
+- PORT_SCAN
+- BRUTE_FORCE
+- BOTNET
+- WEB_ATTACK
+- INFILTRATION
+- NORMAL
+mappings:
+  nsl_kdd:
+    neptune: DDOS
+    smurf: DDOS
+    portsweep: PORT_SCAN
+    ipsweep: PORT_SCAN
+    guess_passwd: BRUTE_FORCE
+    normal: NORMAL
+  cicids_2017:
+    DDoS: DDOS
+    PortScan: PORT_SCAN
+    FTP-Patator: BRUTE_FORCE
+    SSH-Patator: BRUTE_FORCE
+    Bot: BOTNET
+    Web Attack: WEB_ATTACK
+    Infiltration: INFILTRATION
+    BENIGN: NORMAL
+  unsw_nb15:
+    DoS: DDOS
+    Reconnaissance: PORT_SCAN
+    Fuzzers: BRUTE_FORCE
+    Backdoors: BOTNET
+    Normal: NORMAL

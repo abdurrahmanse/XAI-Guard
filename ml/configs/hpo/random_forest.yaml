@@ -1,0 +1,19 @@
+optimizer: Optuna
+trials: 50
+validation: 5-fold StratifiedKFold
+params:
+  n_estimators:
+    type: int
+    range:
+    - 100
+    - 500
+  max_depth:
+    type: int
+    range:
+    - 5
+    - 50
+  min_samples_split:
+    type: int
+    range:
+    - 2
+    - 10

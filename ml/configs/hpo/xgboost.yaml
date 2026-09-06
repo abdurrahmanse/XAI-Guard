@@ -1,0 +1,26 @@
+optimizer: Optuna
+trials: 50
+validation: 5-fold StratifiedKFold
+early_stopping_rounds: 20
+params:
+  learning_rate:
+    type: float
+    range:
+    - 0.01
+    - 0.3
+    scale: log
+  max_depth:
+    type: int
+    range:
+    - 3
+    - 10
+  subsample:
+    type: float
+    range:
+    - 0.5
+    - 1.0
+  colsample_bytree:
+    type: float
+    range:
+    - 0.5
+    - 1.0

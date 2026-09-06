@@ -2,7 +2,7 @@
 
 > **Phases 1–8** | Research scoping, project charter, monorepo setup, infrastructure, database schema, modular monolith design, API contract strategy, and frontend architecture.
 >
-> **How to use:** Each subphase contains a structured prompt. Copy the full prompt block into your AI code editor (Cursor / Windsurf / Copilot). The prompt includes your role, architectural context, precise tasks, required packages, and the expected outcome.
+> **How to use:** Each subphase contains a structured prompt. Copy the full prompt block into your AI code editor (antigraveti). The prompt includes your role, architectural context, precise tasks, required packages, and the expected outcome.
 
 ---
 

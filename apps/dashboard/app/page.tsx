@@ -2,48 +2,75 @@ import { AlertTriangle, Activity, ShieldAlert, Terminal } from "lucide-react";
 
 export default function DashboardHome() {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-            <ShieldAlert className="w-8 h-8 text-rose-500" />
-            SOC Analyst Dashboard
-          </h1>
-          <p className="text-slate-500 mt-2">Real-time threat monitoring and XAI explanations.</p>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Active Alerts</h3>
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-            </div>
-            <p className="text-4xl font-bold text-slate-900">12</p>
-            <p className="text-sm text-rose-500 font-medium mt-2">+3 since last hour</p>
+    <div className="min-h-screen bg-background font-sans p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        <div className="flex items-center justify-between space-y-2">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <ShieldAlert className="w-7 h-7 text-destructive" />
+              SOC Dashboard
+            </h2>
+            <p className="text-muted-foreground mt-1">Real-time threat monitoring and XAI explanations.</p>
           </div>
-          
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Model Confidence</h3>
-              <Activity className="w-5 h-5 text-emerald-500" />
-            </div>
-            <p className="text-4xl font-bold text-slate-900">98.2%</p>
-            <p className="text-sm text-emerald-500 font-medium mt-2">Champion Model: XGBoost</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Events Analyzed</h3>
-              <Terminal className="w-5 h-5 text-blue-500" />
-            </div>
-            <p className="text-4xl font-bold text-slate-900">1.4M</p>
-            <p className="text-sm text-slate-500 font-medium mt-2">Past 24 hours</p>
+          <div className="flex items-center space-x-2">
+            <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              Download Report
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
-          <p className="text-slate-500">Live event stream will appear here...</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Shadcn Card Pattern 1 */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="tracking-tight text-sm font-medium">Active Alerts</h3>
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+            </div>
+            <div className="p-6 pt-0">
+              <div className="text-2xl font-bold">12</div>
+              <p className="text-xs text-muted-foreground">+3 since last hour</p>
+            </div>
+          </div>
+
+          {/* Shadcn Card Pattern 2 */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="tracking-tight text-sm font-medium">Model Confidence</h3>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="p-6 pt-0">
+              <div className="text-2xl font-bold">98.2%</div>
+              <p className="text-xs text-muted-foreground">Champion Model: XGBoost</p>
+            </div>
+          </div>
+
+          {/* Shadcn Card Pattern 3 */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm md:col-span-2">
+            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="tracking-tight text-sm font-medium">Events Analyzed</h3>
+              <Terminal className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="p-6 pt-0">
+              <div className="text-2xl font-bold">1,403,294</div>
+              <p className="text-xs text-muted-foreground">Past 24 hours</p>
+            </div>
+          </div>
         </div>
+
+        {/* Big Chart Placeholder Card */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="flex flex-col space-y-1.5 p-6">
+            <h3 className="font-semibold leading-none tracking-tight">Live Event Stream</h3>
+            <p className="text-sm text-muted-foreground">Monitoring inbound network traffic.</p>
+          </div>
+          <div className="p-6 pt-0">
+            <div className="h-[300px] w-full rounded-md border border-dashed flex items-center justify-center bg-muted/20">
+              <span className="text-sm text-muted-foreground">Chart / Data Table goes here</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

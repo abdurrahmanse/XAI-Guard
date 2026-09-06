@@ -1,164 +1,194 @@
-# 05 — Transformer Models, Comparative Analysis & XAI
+# 05 — Transformer Architecture & XAI Evaluation
 
-> **Phases 33–39** | Transformer Encoder architecture and training, Lightweight Transformer with knowledge distillation, cross-model comparative analysis, statistical significance testing, and SHAP explainability implementation.
+> **Phases 33–39** | Transformer Encoder, Transformer training, Lightweight Transformer with knowledge distillation, quantisation and deployment profiling, cross-model comparative analysis, statistical significance testing, and SHAP implementation.
 >
-> **How to use:** Pick one subphase. Copy its **Prompt** into your AI code editor. Implement it. Move to the next subphase.
+> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
 
 ---
 
 ## Phase 33 — Transformer Encoder Architecture
 
-**Context:** The Transformer Encoder is the primary research model. Self-attention allows it to model relationships between all events in a sequence simultaneously, unlike LSTM's sequential processing. Building the architecture correctly before training avoids costly rewrites.
+**Context:** The Transformer Encoder is the most powerful model in the benchmark. Its self-attention mechanism produces the richest XAI signal via Attention Rollout.
 
-#### Subphase 33.1 — Positional Encoding Module
-> **Prompt:** Implement the sinusoidal positional encoding module for XAI-Guard Transformer. The module adds a fixed positional pattern to each position in the input sequence so the model can distinguish event ordering. It must support configurable embedding dimension and maximum sequence length. Write a unit test that verifies different positions produce different encoding vectors and that the module can be applied to a batch of sequences without error.
+#### Subphase 33.1 — Multi-Head Self-Attention Block
+
+> **🎭 Role:** Senior Deep Learning Architect with Transformer expertise
+> **📍 Context:** The Transformer processes event sequences. Each position in the sequence attends to all others. Attention weights are stored during forward passes for XAI extraction.
+> **🔧 Task:** Implement `ml/src/models/transformer/attention.py`. `MultiHeadSelfAttention(d_model: int, n_heads: int, dropout: float)` PyTorch Module. Standard scaled dot-product attention: `Q, K, V` projections as `nn.Linear`; attention scores `QK^T / sqrt(d_k)` with softmax; dropout on attention weights. Crucially: store the attention weight matrix in `self.last_attention_weights` during every forward pass (for XAI). This must work with `torch.no_grad()` context. `n_heads` must divide `d_model` exactly (raise `ValueError` otherwise). Add pre-layer norm (`nn.LayerNorm`) following the Pre-LN Transformer architecture for training stability.
+> **📦 Stack:** torch 2.3, numpy
+> **✅ Outcome:** `attention.last_attention_weights` has shape `(batch, n_heads, seq_len, seq_len)` after every forward pass. Attention weights sum to 1.0 along the last dimension (within 1e-5).
 
 #### Subphase 33.2 — Transformer Encoder Block
-> **Prompt:** Implement the Transformer encoder block for XAI-Guard. The block consists of a multi-head self-attention layer followed by a position-wise feed-forward network, with residual connections and layer normalisation applied in the pre-norm style. The block must be configurable by the number of attention heads, feed-forward hidden dimension, and dropout rate. Store the raw attention weights during the forward pass so they can be extracted for the attention explainability module in Phase 41.
 
-#### Subphase 33.3 — Full Transformer Model
-> **Prompt:** Implement the full XAI-Guard Transformer model following the common base interface from Phase 26. The model stacks N encoder blocks, applies a pooling strategy over the sequence dimension (configurable between CLS token pooling and mean pooling), passes the result through a classification head. The model must accept the sequence input format produced by the sequence builder from Phase 23 and be fully configurable via a parameter dictionary.
+> **🎭 Role:** Senior Deep Learning Engineer
+> **📍 Context:** A single Encoder block is the composable unit. Stacking N blocks creates the full Transformer.
+> **🔧 Task:** Implement `TransformerEncoderBlock(d_model, n_heads, d_ff, dropout)` in `ml/src/models/transformer/encoder.py`. Architecture: Pre-LN Multi-Head Self-Attention with residual connection; Pre-LN Feed-Forward `Linear(d_model, d_ff) → GELU → Dropout → Linear(d_ff, d_model)` with residual connection. Implement `TransformerEncoder(n_layers, d_model, n_heads, d_ff, dropout, n_classes, n_features, max_seq_len)` that: (1) projects input features to d_model; (2) adds positional encoding; (3) passes through N encoder blocks; (4) takes the mean-pooled output (not CLS token) as the sequence representation; (5) classifies with a linear head.
+> **📦 Stack:** torch 2.3
+> **✅ Outcome:** Forward pass with input `(32, 10, 50)` produces output `(32, 7)`. All residual connections are correct (verified by gradient flow test).
 
-#### Subphase 33.4 — Attention Weight Extraction
-> **Prompt:** Implement the attention weight extraction interface for the XAI-Guard Transformer. Add a method that runs a forward pass and returns both the prediction and the raw attention weight tensors from every encoder block. These weights are used by the attention explainability module in Phase 41 and by the attention rollout algorithm. Write a unit test confirming the attention weight shape is (batch, n_heads, seq_len, seq_len) for each layer.
+#### Subphase 33.3 — Attention Weight Extraction for XAI
 
-#### Subphase 33.5 — Architecture Unit Tests
-> **Prompt:** Write comprehensive unit tests for the XAI-Guard Transformer architecture. Verify: forward pass produces the correct output shape for various batch sizes, sequence lengths, and number of features; the model handles sequence length 1 (single event) without error; gradient flow is verified through all layers on the first backward pass; the attention weights for each layer sum to one across the key dimension; and the model can be saved and loaded with identical parameter values.
+> **🎭 Role:** XAI Research Engineer
+> **📍 Context:** Attention Rollout (Abnar & Zuidema, 2020) computes how much each input token contributed to the output by recursively combining attention weights across layers. This requires access to per-layer attention weights.
+> **🔧 Task:** Implement `AttentionRolloutExtractor` in `ml/src/models/transformer/attention_rollout.py`. Method `extract(model: TransformerEncoder, X_seq: torch.Tensor) -> np.ndarray`: (1) run forward pass; (2) collect `last_attention_weights` from all N encoder blocks; (3) apply Attention Rollout algorithm: rollout = I + A for each layer; normalise; matrix multiply across layers; extract the final rollout vector per sequence position. Return shape `(n_samples, seq_len)` — the importance score of each event in the sequence window.
+> **📦 Stack:** torch, numpy
+> **✅ Outcome:** Rollout scores sum to approximately 1.0 per sample. The most important timestep (highest score) corresponds to the event most likely to contain the attack signal.
+
+#### Subphase 33.4 — Transformer Unit Tests
+
+> **🎭 Role:** Senior Test Engineer
+> **📍 Context:** Transformer attention is notoriously easy to implement incorrectly. Unit tests catch subtle bugs before expensive training.
+> **🔧 Task:** Write `ml/tests/test_transformer.py`. Test: (1) output shape is `(batch, n_classes)` for various batch sizes; (2) attention weights sum to 1.0 per head and position; (3) `last_attention_weights` are populated after `torch.no_grad()` forward pass; (4) Attention Rollout produces scores summing to approximately 1.0; (5) gradient flow reaches the input projection layer; (6) Pre-LN architecture: layer norm is applied before attention, not after (verify by checking norm layer position in the module graph); (7) `n_heads` validation raises ValueError for non-divisible d_model.
+> **📦 Stack:** pytest, torch, numpy
+> **✅ Outcome:** All 7 Transformer unit tests pass. The gradient flow test specifically verifies the Pre-LN architecture.
 
 ---
 
 ## Phase 34 — Transformer Encoder Training
 
-**Context:** Train the Transformer with a warm-up learning rate schedule and Optuna-based hyperparameter search. The Transformer requires more careful optimisation than classical models due to its sensitivity to learning rate and warm-up duration.
+**Context:** Train the Transformer with a warm-up learning rate schedule and Optuna search. This is the computationally most expensive training phase.
 
-#### Subphase 34.1 — PyTorch Lightning Trainer
-> **Prompt:** Implement the PyTorch Lightning trainer for the XAI-Guard Transformer Encoder. Define training_step, validation_step, and test_step. Implement configure_optimizers with AdamW and a linear warm-up followed by cosine annealing schedule, which is the standard Transformer training recipe. Configure early stopping on validation F1 macro with patience of 10 epochs (higher than LSTM because Transformers converge more slowly). Log all metrics to MLflow at every epoch.
+#### Subphase 34.1 — Warm-Up Cosine Scheduler
 
-#### Subphase 34.2 — Warm-Up Learning Rate Scheduler
-> **Prompt:** Implement the linear warm-up with cosine annealing learning rate scheduler for XAI-Guard Transformer training. The scheduler linearly increases the learning rate from zero to the target learning rate over the first W warm-up steps, then decays it following a cosine curve to a minimum learning rate at the end of training. W is a tunable hyperparameter. This scheduler is critical for Transformer convergence stability. Plot the learning rate curve for the default configuration as part of the training documentation.
+> **🎭 Role:** Senior Deep Learning Engineer
+> **📍 Context:** Transformers require a warm-up phase where the learning rate starts low and increases linearly to prevent instability in the early training stages.
+> **🔧 Task:** Implement `WarmupCosineScheduler(optimizer, n_warmup_steps: int, n_total_steps: int)` in `ml/src/training/schedulers.py`. Linear warm-up from `lr/n_warmup_steps` to `lr` over `n_warmup_steps` steps. Cosine annealing from `lr` to `lr/100` over the remaining steps. Step the scheduler per batch (not per epoch). Log the current learning rate to MLflow every 100 steps. Write a unit test that plots the LR schedule over 1000 steps and verifies the peak occurs at step `n_warmup_steps`.
+> **📦 Stack:** torch, mlflow, matplotlib
+> **✅ Outcome:** The LR peaks at `n_warmup_steps` and decays to `lr/100` by step `n_total_steps`. The schedule plot is logged as an MLflow artifact.
 
-#### Subphase 34.3 — Optuna Hyperparameter Search
-> **Prompt:** Configure and run the Optuna hyperparameter search for the XAI-Guard Transformer Encoder. The search space covers: number of encoder layers from 1 to 4, number of attention heads across 2 4 and 8, feed-forward dimension as a multiple of the embedding dimension, dropout rate from 0.1 to 0.4, learning rate on a log scale, warm-up fraction from 0.05 to 0.20 of total training steps, and batch size across 64 128 and 256. Run 50 trials with early pruning after 15 epochs.
+#### Subphase 34.2 — Optuna Transformer Search
 
-#### Subphase 34.4 — Full Training Run & Metrics
-> **Prompt:** Run the full XAI-Guard Transformer training with the best hyperparameters from the Optuna study. Log complete training curves to MLflow. After training, evaluate on the held-out test set using the standard metrics harness, compute per-attack-type F1 breakdown, profile inference latency at four batch sizes, and save the model artifact with the attention weight extraction method intact. Register the model as a candidate in the MLflow Model Registry.
-
-#### Subphase 34.5 — Attention Weight Saving
-> **Prompt:** Add attention weight artifact saving to the XAI-Guard Transformer training script. After the final model is trained, run the forward pass on 200 test samples with attention weight extraction enabled, save the resulting attention tensors as a NumPy artifact to MLflow, and log metadata about the attention patterns: the mean attention entropy per layer (high entropy means distributed attention, low entropy means focused attention). These saved weights are used by the attention explainability phase.
-
-#### Subphase 34.6 — Transformer Analysis Notebook
-> **Prompt:** Create a Jupyter analysis notebook for the XAI-Guard Transformer Encoder. Include: training and validation loss curves, the Optuna trial history, confusion matrix, per-attack-type F1 comparison against XGBoost and LSTM, latency-vs-batch-size comparison showing all three models, and attention heatmap visualisations for three example sequences covering DDoS, BruteForce, and Normal traffic. The attention heatmaps are key research paper figures.
+> **🎭 Role:** Senior ML Research Engineer
+> **📍 Context:** The Transformer has more hyperparameters than the LSTM. The search space includes architecture parameters (d_model, n_heads, n_layers) and training parameters.
+> **🔧 Task:** Write `ml/scripts/train_transformer.py`. Optuna objective: suggest `d_model` ∈ [64, 128, 256] (must be divisible by n_heads), `n_heads` ∈ [4, 8] (enforced to divide d_model), `n_layers` ∈ [2, 4, 6], `d_ff` = 4 × d_model (fixed ratio), `dropout` [0.1, 0.3], `n_warmup_steps` [100, 1000], `learning_rate` log-uniform [1e-5, 1e-3], `weight_decay` log-uniform [1e-5, 1e-2]. Run 20 Optuna trials. After best trial, save attention weights for the full test set as a NumPy artifact for Phase 39 and Phase 41.
+> **📦 Stack:** optuna, pytorch-lightning, torch, mlflow
+> **✅ Outcome:** 20 trials complete. Best Transformer model is registered. Attention weights for the test set are saved as an MLflow artifact.
 
 ---
 
 ## Phase 35 — Lightweight Transformer & Knowledge Distillation
 
-**Context:** The Lightweight Transformer answers RQ3 and RQ6: can we get near-Transformer performance at near-XGBoost cost? Knowledge distillation trains the smaller model to match the larger Transformer's soft predictions, improving accuracy beyond training from scratch.
+**Context:** The full Transformer may be too slow for production. Knowledge distillation trains a smaller student model to mimic the large teacher, achieving similar accuracy at lower latency cost.
 
-#### Subphase 35.1 — Lightweight Architecture Design
-> **Prompt:** Design the Lightweight Transformer architecture for XAI-Guard. The model is a reduced version of the full Transformer: a maximum of 2 encoder blocks, a smaller embedding dimension, and a smaller feed-forward dimension. The architecture must be at least 5 times smaller than the full Transformer in parameter count and must meet the inference latency budget of P99 under 100 milliseconds on CPU hardware. Document the exact architecture choices and their rationale.
+#### Subphase 35.1 — Lightweight Transformer Architecture
 
-#### Subphase 35.2 — Scratch Training Baseline
-> **Prompt:** Train the XAI-Guard Lightweight Transformer from scratch on the same dataset as the full Transformer, using the same training recipe but without any knowledge distillation. This establishes the baseline performance of the smaller architecture. Log all metrics to MLflow and compare against the full Transformer to quantify the accuracy cost of reducing model size.
+> **🎭 Role:** Senior Deep Learning Engineer with model compression expertise
+> **📍 Context:** The Lightweight Transformer uses fewer layers and smaller d_model than the full Transformer. It will be trained from scratch first (baseline) and then with distillation.
+> **🔧 Task:** Implement `LightweightTransformerModel(XAIGuardModel)` in `ml/src/models/lightweight_transformer.py`. Fixed architecture: `d_model=64, n_heads=4, n_layers=2, d_ff=256`. This model is intentionally small to fit the P99 ≤ 100ms CPU latency budget. Reuse all building blocks from Phase 33. Verify the model has fewer than 500K parameters using `sum(p.numel() for p in model.parameters())`. Log the parameter count and model file size to MLflow.
+> **📦 Stack:** torch 2.3
+> **✅ Outcome:** The lightweight model has fewer than 500K parameters. The interface contract tests all pass.
 
-#### Subphase 35.3 — Knowledge Distillation Loss
-> **Prompt:** Implement the knowledge distillation loss function for XAI-Guard. The loss combines: cross-entropy loss between the student model's predictions and the true labels, weighted by (1 - alpha); and Kullback-Leibler divergence between the student's softened output probabilities and the teacher Transformer's softened output probabilities at temperature T, weighted by alpha. Both alpha and temperature T are configurable hyperparameters. Write a unit test that verifies the loss is lower when the student and teacher agree than when they disagree.
+#### Subphase 35.2 — Knowledge Distillation Training
 
-#### Subphase 35.4 — Distillation Training Run
-> **Prompt:** Implement the knowledge distillation training loop for XAI-Guard. Load the trained full Transformer as the frozen teacher model. Train the Lightweight Transformer student using the distillation loss from Phase 35.3. Search over alpha values of 0.3, 0.5, and 0.7, and temperature values of 2, 4, and 8, using a grid search. Log all distillation trial results to MLflow. Select the best configuration and compare the distilled student against the from-scratch baseline.
-
-#### Subphase 35.5 — Distillation Improvement Analysis
-> **Prompt:** Analyse the XAI-Guard knowledge distillation results. Compute the performance improvement from distillation over from-scratch training for the Lightweight Transformer: delta in F1 macro, delta in ROC-AUC, and delta in per-attack-type F1. Document which attack types benefit most from distillation. Register the best distilled Lightweight Transformer model in the MLflow Model Registry.
+> **🎭 Role:** Senior Deep Learning Engineer specialising in model compression
+> **📍 Context:** Knowledge distillation trains the student to match the teacher's soft probability outputs (logits) rather than just the hard labels. This transfers knowledge beyond what the labels alone convey.
+> **🔧 Task:** Implement the distillation training objective in `ml/scripts/train_lightweight_transformer.py`. `DistillationLoss = α * KL(student_softmax/T || teacher_softmax/T) + (1-α) * CrossEntropy(student, hard_labels)`. Default: `T=4` (temperature), `α=0.7`. The teacher is the best full Transformer from Phase 34, loaded from MLflow and frozen. Train for 50 epochs. Log: distillation loss, cross-entropy loss, and KL divergence separately to MLflow per epoch to diagnose distillation quality.
+> **📦 Stack:** torch, pytorch-lightning, mlflow
+> **✅ Outcome:** Distilled lightweight Transformer achieves F1 within 3% of the full Transformer. KL divergence converges. Both loss components are logged separately.
 
 ---
 
 ## Phase 36 — Quantisation & Deployment Profiling
 
-**Context:** Before the comparative analysis, profile every model under production-like deployment conditions: CPU-only inference (no GPU), realistic batch sizes, and memory constraints. This answers RQ6 (cost-efficient deployment).
+**Context:** Quantisation reduces model size and CPU inference latency. Deployment profiling determines the composite deployment score for all six models.
 
-#### Subphase 36.1 — Dynamic INT8 Quantisation
-> **Prompt:** Apply dynamic INT8 quantisation to the XAI-Guard LSTM and Transformer models using PyTorch's dynamic quantisation API. Measure the accuracy delta caused by quantisation: the difference in F1 macro and ROC-AUC before and after quantisation. The accuracy delta must be below 1% for the quantised model to be considered deployment-viable. Log the delta and the quantised model file size to MLflow.
+#### Subphase 36.1 — INT8 Quantisation
 
-#### Subphase 36.2 — CPU-Only Latency Profiling
-> **Prompt:** Profile all six XAI-Guard models for CPU-only single-event inference latency, simulating the production deployment condition where GPU acceleration is not available. Measure P50, P95, and P99 latency in milliseconds at batch size 1 for 1000 warm predictions. Compare the results across all six models in a single table and document which models meet the P99 under 100 milliseconds budget.
+> **🎭 Role:** Senior ML Inference Optimisation Engineer
+> **📍 Context:** INT8 quantisation reduces weights from float32 to int8, typically achieving 2-4× speedup on CPU with < 1% accuracy loss for classification tasks.
+> **🔧 Task:** Apply PyTorch dynamic INT8 quantisation to the Lightweight Transformer model. Use `torch.quantization.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)`. Measure and compare: model file size (MB) before and after quantisation; F1 macro before and after (verify F1 loss < 1%); inference latency P99 before and after on 5000 single-event batches. Log all comparisons to MLflow. If F1 loss exceeds 1%, try `torch.quantization.prepare_qat` for quantisation-aware training instead.
+> **📦 Stack:** torch 2.3, mlflow, numpy
+> **✅ Outcome:** Quantised model is smaller and faster. F1 loss is < 1%. Size and latency comparisons are logged.
 
-#### Subphase 36.3 — Memory Footprint Measurement
-> **Prompt:** Measure the peak memory footprint of each XAI-Guard model during inference. Use tracemalloc or memory_profiler to record peak RSS memory consumption when running inference on a batch of 256 samples. Record both the model loading memory and the additional memory consumed per batch. Document which models fit within a 1 GB memory budget for deployment on standard server hardware.
+#### Subphase 36.2 — Composite Deployment Score Computation
 
-#### Subphase 36.4 — Composite Deployment Score
-> **Prompt:** Compute the composite deployment score for all six XAI-Guard models. The score combines three components: normalised F1 macro (weight 40%), normalised inverse inference latency P99 (weight 35%), and normalised inverse peak memory (weight 25%). Normalise each component to a 0-to-1 scale across the six models. Log the composite scores to MLflow. This score is the primary axis for the Pareto frontier analysis.
-
-#### Subphase 36.5 — Pareto Frontier Analysis
-> **Prompt:** Perform Pareto frontier analysis for XAI-Guard comparing all six models on the accuracy-versus-efficiency trade-off. Plot F1 macro on the y-axis against composite operational cost on the x-axis. Identify the Pareto-optimal models: those where no other model is better on both axes simultaneously. Create a Jupyter notebook that produces this plot as a high-resolution figure for the research paper.
+> **🎭 Role:** MLOps Architect and Research Lead
+> **📍 Context:** The CDS formula from Phase 1 combines F1, latency, and memory into a single deployment fitness score. Computing it for all six models determines which model wins on Pillar 3.
+> **🔧 Task:** Implement `ml/src/evaluation/deployment_score.py`. `CompositeDeploymentScorer` with method `score(models_metrics: list[ThreePillarMetrics]) -> list[DeploymentScore]`. For each model: normalise F1 to [0, 1] across all six models (min-max); normalise 1/latency_p99; normalise 1/memory_mb. Apply CDS formula: `CDS = 0.40 × norm_f1 + 0.35 × norm_speed + 0.25 × norm_memory`. Produce a Pareto frontier plot: F1 vs latency scatter with model family labels. Log the CDS table and Pareto plot to MLflow.
+> **📦 Stack:** numpy, matplotlib, mlflow, pydantic v2
+> **✅ Outcome:** CDS scores are computed for all six models. The Pareto frontier plot is saved as a publishable figure.
 
 ---
 
 ## Phase 37 — Cross-Model Comparative Analysis
 
-**Context:** This is the central research output — a complete quantitative comparison of all six models across all metrics. The analysis directly answers all eight research questions.
+**Context:** The master comparison table is the central deliverable of the ML research phase. It answers all eight research questions and determines the Champion.
 
 #### Subphase 37.1 — Master Comparison Table
-> **Prompt:** Build the XAI-Guard master model comparison table. Fetch all six models' logged metrics from MLflow using the MlflowClient API. Construct a pandas DataFrame with models as rows and all evaluation metrics as columns: F1 macro, ROC-AUC, PR-AUC, precision macro, recall macro, per-attack-type F1 for each class, inference latency P99, peak memory, training time, and composite deployment score. Save the table as both a CSV artifact and a formatted markdown table.
 
-#### Subphase 37.2 — Per-Attack-Type Heatmap
-> **Prompt:** Create the per-attack-type F1 performance heatmap for XAI-Guard. The heatmap shows models on one axis and attack types on the other, with F1 score as the cell value and a colour scale from red (poor) to green (excellent). This visualisation immediately reveals which models struggle with specific attack types. Create the heatmap as a high-resolution figure using seaborn and save it as a PNG artifact in MLflow.
+> **🎭 Role:** Lead ML Research Scientist
+> **📍 Context:** All six models have been trained and evaluated. MLflow contains all metrics. The comparison table collects them into the definitive ranked comparison.
+> **🔧 Task:** Create `ml/notebooks/analysis/01_master_comparison.ipynb`. Load all six models' `ThreePillarMetrics` from MLflow using the `mlflow.search_runs` API. Build the master comparison DataFrame: rows are model families, columns are all metrics from all three pillars. Sort by CDS descending. Apply conditional formatting: highlight max value per column in green, min value in red. Export as: (1) styled HTML for the research paper; (2) CSV for the admin panel ReportGenerator; (3) Markdown for the CONTRIBUTING guide. Log all three to MLflow.
+> **📦 Stack:** mlflow, pandas, matplotlib
+> **✅ Outcome:** The master comparison table is exported in all three formats. The CSV is the source of truth that the admin panel's ReportGenerator loads.
 
-#### Subphase 37.3 — Cross-Dataset Generalisation Evaluation
-> **Prompt:** Evaluate the XAI-Guard cross-dataset generalisation of all six models. Train each model on CICIDS-2017 and evaluate on UNSW-NB15 without any fine-tuning. Compute the generalisation gap as the difference in F1 macro between in-distribution and out-of-distribution evaluation. Log generalisation gaps to MLflow and create a bar chart showing which models are most robust to dataset shift.
+#### Subphase 37.2 — Per-Attack F1 Heatmap
 
-#### Subphase 37.4 — Challenger Model Selection
-> **Prompt:** Select the XAI-Guard Challenger model based on the comparative analysis results. The Challenger must: outperform the XGBoost Champion by the promotion thresholds defined in Phase 1, be Pareto-optimal on the efficiency frontier, and have been tested on at least two datasets. Document the selection rationale in a findings document. Update the PostgreSQL model registry to mark the selected model as challenger with shadow evaluation status.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** Overall F1 macro hides per-attack-class performance differences. The heatmap reveals which models excel at specific attack types.
+> **🔧 Task:** In the comparison notebook, generate a seaborn heatmap: x-axis = 7 attack taxonomy classes, y-axis = 6 model families. Cell values = per-class F1. Colour scale from red (0.0) to green (1.0). Annotate each cell with the F1 value. This heatmap is Figure 2 of the research paper. Save as a high-resolution PNG.
+> **📦 Stack:** seaborn, matplotlib
+> **✅ Outcome:** The per-attack heatmap is saved as a 300 DPI publication-quality figure.
 
-#### Subphase 37.5 — Research Findings Document Update
-> **Prompt:** Update the XAI-Guard research findings document with the comparative analysis results. Write the analysis section that answers each of the eight research sub-questions with specific numbers from the comparison table. For each question, state the finding, the supporting metric, the magnitude of the effect, and whether the finding is statistically significant (to be confirmed in Phase 38). This document is the draft results section of the research paper.
+#### Subphase 37.3 — Challenger Selection & Champion Confirmation
 
-#### Subphase 37.6 — Comparative Analysis Notebook
-> **Prompt:** Create the master comparative analysis Jupyter notebook for XAI-Guard. Include all visualisations that appear in the research paper: the per-attack-type F1 heatmap from Phase 37.2, the Pareto frontier chart from Phase 36.5, a radar chart comparing all six models across F1/AUC/Latency/Memory on a normalised scale, and a summary table with colour-coded cells highlighting the best model per metric. This notebook is the single source of truth for all research paper figures.
+> **🎭 Role:** MLOps Lead and Research Director
+> **📍 Context:** Based on the comparative analysis, the best non-XGBoost model becomes the Challenger. The research must justify both the Champion selection and the Challenger selection.
+> **🔧 Task:** Write a structured decision document in the notebook. Champion justification: XGBoost wins on CDS because [specific numbers from P36]. Challenger selection: [Model X] is selected as Challenger because it has the highest F1 among non-Champions with acceptable latency. Update MLflow Model Registry: set the Challenger model alias to `CHALLENGER`. Update `docs/champion-challenger-status.md` with the current Champion and Challenger, their metrics, and the selection justification.
+> **📦 Stack:** mlflow
+> **✅ Outcome:** MLflow shows exactly one CHAMPION and one CHALLENGER alias. The status document is committed.
 
 ---
 
 ## Phase 38 — Statistical Significance Testing
 
-**Context:** Research claims about model performance differences must be statistically validated. Without significance testing, observed differences might be due to random variation in the train/test split.
+**Context:** Research claims about model superiority must be statistically validated. Without significance testing, apparent differences may be random variation.
 
 #### Subphase 38.1 — McNemar's Test Implementation
-> **Prompt:** Implement McNemar's test for XAI-Guard model comparison. McNemar's test compares two classifiers on the same test set by examining cases where the models disagree. It tests whether the difference in error rates between two models is statistically significant. Implement the test for every pair of the six models, producing a 6x6 p-value matrix. Use a significance level of 0.05 with Bonferroni correction for multiple comparisons.
 
-#### Subphase 38.2 — Significance Matrix & Visualisation
-> **Prompt:** Create the pairwise statistical significance matrix for XAI-Guard. For each pair of models, display the McNemar's test p-value and a boolean indicating whether the difference is statistically significant after Bonferroni correction. Visualise this as a heatmap with green cells for significant differences and red cells for non-significant differences. Include the actual p-values as cell annotations. Save as a high-resolution research paper figure.
+> **🎭 Role:** ML Research Scientist with statistical testing expertise
+> **📍 Context:** McNemar's test evaluates whether two classifiers differ in their errors on the same test set. It is the appropriate test for paired binary classification results.
+> **🔧 Task:** Implement `ml/src/evaluation/significance.py`. `McNemarTest` class: `test(predictions_a: np.ndarray, predictions_b: np.ndarray, y_true: np.ndarray) -> McNemarResult` using `statsmodels.stats.contingency_tables.mcnemar`. `McNemarResult` Pydantic model: `chi2`, `p_value`, `is_significant` (p < 0.05 / n_comparisons with Bonferroni correction for 15 pairwise tests), `interpretation: str`. Run the test for all 15 pairwise model comparisons (6 choose 2). Build the 6×6 significance matrix as a pandas DataFrame.
+> **📦 Stack:** statsmodels, numpy, pandas, pydantic v2
+> **✅ Outcome:** All 15 pairwise McNemar tests are computed. The significance matrix shows which model pairs differ significantly after Bonferroni correction.
 
-#### Subphase 38.3 — Confidence Interval Estimation
-> **Prompt:** Compute 95% confidence intervals for the F1 macro of each XAI-Guard model using bootstrap resampling. Draw 1000 bootstrap samples from the test set predictions, compute F1 macro for each, and report the 2.5th and 97.5th percentile as the confidence interval bounds. Models whose confidence intervals do not overlap are definitively different at the 95% confidence level. Plot the confidence intervals as error bars on the model comparison bar chart.
+#### Subphase 38.2 — Confidence Intervals
 
-#### Subphase 38.4 — Statistical Findings Documentation
-> **Prompt:** Update the XAI-Guard research findings document with the statistical significance results. For each performance claim in the comparative analysis (e.g., XGBoost outperforms Random Forest), add the McNemar's test p-value and whether the claim is statistically significant. Flag any claims that appear important visually but do not reach statistical significance. This section ensures the research paper meets peer review standards for statistical rigour.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** Point estimates of F1 do not communicate uncertainty. Bootstrap confidence intervals quantify the precision of each model's performance estimate.
+> **🔧 Task:** Implement bootstrap confidence intervals for all six models in `significance.py`. `bootstrap_ci(model: XAIGuardModel, X_test: np.ndarray, y_test: np.ndarray, metric: str, n_bootstrap: int = 1000, confidence: float = 0.95) -> ConfidenceInterval`. Resample test set with replacement N times; compute metric each time; report [2.5th, 97.5th percentile] as the CI. Add results to the master comparison table as `f1_macro_ci_lower` and `f1_macro_ci_upper` columns. Present as mean ± (CI half-width).
+> **📦 Stack:** numpy, sklearn
+> **✅ Outcome:** Each model has a 95% bootstrap CI for F1 macro. The CI widths indicate which model's performance estimate is most reliable.
 
 ---
 
 ## Phase 39 — SHAP Explainability Implementation
 
-**Context:** SHAP provides theoretically grounded feature attributions using cooperative game theory. It is the primary XAI method for XAI-Guard because it supports all six model families through different explainer variants.
+**Context:** SHAP is the primary XAI method. It provides theoretically grounded feature importance values for every prediction, enabling the analyst dashboard's Threat Detection card.
 
-#### Subphase 39.1 — Unified SHAP Explainer Design
-> **Prompt:** Design the unified SHAP explainer interface for XAI-Guard that dispatches to the correct SHAP explainer variant based on model type. The interface exposes three methods: explain_local for computing SHAP values for a single prediction, explain_global for computing mean absolute SHAP values across a test set to represent global feature importance, and stability_score for measuring explanation consistency across repeated runs on the same input. Define the return types for each method as structured Pydantic models.
+#### Subphase 39.1 — Unified SHAP Explainer Interface
 
-#### Subphase 39.2 — TreeExplainer for Classical Models
-> **Prompt:** Implement the SHAP TreeExplainer integration for XAI-Guard covering Logistic Regression using LinearExplainer, Random Forest using TreeExplainer, and XGBoost using TreeExplainer. These explainers are exact (not approximate) and are the fastest of the SHAP variants. Write unit tests confirming that the sum of SHAP values plus the base value equals the model's raw prediction score for each model type.
+> **🎭 Role:** Senior XAI Research Engineer
+> **📍 Context:** Three SHAP explainer variants are needed: TreeExplainer for XGBoost/RF, DeepExplainer for LSTM/Transformer, and GradientExplainer as a fallback. They must be unified behind the same interface.
+> **🔧 Task:** Implement `ml/src/xai/shap_explainer.py`. `XAIGuardSHAPExplainer` class with `explain(model: XAIGuardModel, X: np.ndarray, n_samples: int = 100) -> SHAPExplanation`. Internally: if `model_family` in [RF, XGBoost] → use `shap.TreeExplainer`; if [LSTM, Transformer, LT] → use `shap.DeepExplainer` with 50 background samples; fallback → `shap.GradientExplainer`. Return `SHAPExplanation` Pydantic model: `shap_values: np.ndarray`, `base_values: np.ndarray`, `feature_names: list[str]`, `top_k_features: list[FeatureContribution]` (top 5 by absolute SHAP). Validate additivity: `|sum(shap_values, axis=1) + base_value - log_odds| < 0.1` for each sample.
+> **📦 Stack:** shap 0.45, torch, sklearn, pydantic v2
+> **✅ Outcome:** `explainer.explain(xgboost_model, X_test[:100])` returns a `SHAPExplanation` with correct shapes. The additivity validation passes for all samples.
 
-#### Subphase 39.3 — DeepExplainer for LSTM
-> **Prompt:** Implement the SHAP DeepExplainer integration for XAI-Guard LSTM. DeepExplainer uses a background dataset of representative samples to approximate SHAP values using the DeepLIFT algorithm. Configure the background dataset size to 100 samples. Handle the sequence input format correctly by reshaping the 3D sequence tensor into the format expected by DeepExplainer. Write a unit test confirming output shape and that values are in a reasonable range.
+#### Subphase 39.2 — Global SHAP Analysis
 
-#### Subphase 39.4 — GradientExplainer for Transformer Models
-> **Prompt:** Implement the SHAP GradientExplainer integration for XAI-Guard covering both the full Transformer Encoder and the Lightweight Transformer. GradientExplainer computes SHAP values by integrating gradients using the integrated gradients approximation, requiring PyTorch gradients to be enabled. Configure it with a background dataset of 50 samples. Test that the explainer produces stable outputs across repeated runs on the same input.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** Global SHAP analysis explains which features drive the model's decisions across all predictions, not just individual ones. This is Figure 3 of the research paper.
+> **🔧 Task:** Create `ml/notebooks/xai/01_shap_global.ipynb`. Compute SHAP values for 1000 test samples across all six models. For each model: (1) beeswarm summary plot (feature impact direction and magnitude); (2) mean absolute SHAP bar chart (global importance); (3) SHAP dependence plot for the top 3 features; (4) SHAP interaction values for XGBoost (pairwise feature interaction heatmap). Compare the feature importance rankings across all six models as a rank correlation matrix using Spearman's ρ.
+> **📦 Stack:** shap, matplotlib, seaborn, scipy
+> **✅ Outcome:** All SHAP plots are saved as publication-quality figures. The Spearman rank correlation matrix quantifies agreement between model families' feature importance.
 
-#### Subphase 39.5 — Global SHAP Computation
-> **Prompt:** Implement the global SHAP analysis pipeline for XAI-Guard. For each of the six models, compute SHAP values for 1000 test samples, compute mean absolute SHAP per feature to get global importance rankings, and compute the Spearman rank correlation between each pair of models' global importance rankings. High correlation means models agree on which features matter most. Log all global SHAP results to MLflow as artifacts.
+#### Subphase 39.3 — SHAP Stability Testing
 
-#### Subphase 39.6 — SHAP Stability Testing
-> **Prompt:** Implement SHAP explanation stability testing for XAI-Guard. For each model, run the local SHAP explainer 10 times on the same 100 test samples. Compute the stability score as one minus the mean coefficient of variation of SHAP values across the 10 runs. A stability score of 1.0 means perfectly consistent explanations. Log stability scores per model to MLflow and document which models have explanations stable enough for analyst trust.
-
-#### Subphase 39.7 — SHAP Analysis Notebook
-> **Prompt:** Create the SHAP analysis Jupyter notebook for XAI-Guard. Include: a SHAP beeswarm plot for each of the six models showing the distribution of SHAP values per feature; waterfall plots for three representative samples covering DDoS, BruteForce, and Normal predictions; the global feature importance bar chart comparing all six models side-by-side; the stability score comparison bar chart; and the Spearman correlation heatmap between model pairs' feature importance rankings. These are primary research paper figures.
+> **🎭 Role:** XAI Research Engineer
+> **📍 Context:** SHAP explanations must be stable: the same input should produce the same top features across repeated calls. Unstable explanations would undermine analyst trust.
+> **🔧 Task:** Implement `ml/src/xai/stability.py`. `SHAPStabilityTester` that runs the SHAP explainer 10 times on the same 50 test samples and computes the coefficient of variation (CV) of SHAP values per feature per sample. `stability_score = 1 - mean(CV_across_features)`. A stability score > 0.95 is acceptable. For stochastic models (DeepExplainer uses random background samples), fix the random seed. Log stability scores per model to MLflow.
+> **📦 Stack:** shap, numpy, mlflow
+> **✅ Outcome:** All deterministic models (LR, RF, XGBoost) have stability score = 1.0. Deep learning models have stability score > 0.95 with fixed seed.
 
 ---
 
@@ -166,12 +196,12 @@
 
 | Phase | Title | Subphases |
 |-------|-------|-----------|
-| P33 | Transformer Encoder Architecture | 5 |
-| P34 | Transformer Encoder Training | 6 |
-| P35 | Lightweight Transformer & Knowledge Distillation | 5 |
-| P36 | Quantisation & Deployment Profiling | 5 |
-| P37 | Cross-Model Comparative Analysis | 6 |
-| P38 | Statistical Significance Testing | 4 |
-| P39 | SHAP Explainability Implementation | 7 |
+| P33 | Transformer Encoder Architecture | 4 |
+| P34 | Transformer Encoder Training | 2 |
+| P35 | Lightweight Transformer & Distillation | 2 |
+| P36 | Quantisation & Deployment Profiling | 2 |
+| P37 | Cross-Model Comparative Analysis | 3 |
+| P38 | Statistical Significance Testing | 2 |
+| P39 | SHAP Explainability Implementation | 3 |
 
 **Previous ←** [04 — Classical ML & Sequence Models](04-ml-research-and-experiments.md) | **Next →** [06 — LIME, XAI Evaluation & Backend Core](06-backend-and-frontend-engineering.md)

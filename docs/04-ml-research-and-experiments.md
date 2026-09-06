@@ -1,149 +1,226 @@
-# 04 — Classical ML & Sequence Models
+# 04 — Classical ML & Sequence Model Experiments
 
-> **Phases 26–32** | Common model interface design, Logistic Regression baseline, Random Forest, XGBoost (initial Champion), LSTM architecture and training, and LSTM evaluation.
+> **Phases 26–32** | Common model interface, Logistic Regression baseline, Random Forest, XGBoost + Champion registration, LSTM architecture, LSTM training, and LSTM evaluation.
 >
-> **How to use:** Pick one subphase. Copy its **Prompt** into your AI code editor. Implement it. Move to the next subphase.
+> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
 
 ---
 
 ## Phase 26 — Common Model Interface Design
 
-**Context:** All six models must share a single interface so that the inference service, evaluation harness, and XAI modules can treat every model identically. Design this interface before implementing any model.
+**Context:** All six models must implement an identical interface so evaluation, serialisation, and production serving are model-agnostic. Define the interface before writing a single model.
 
-#### Subphase 26.1 — Model Interface Specification
-> **Prompt:** Write the formal specification for the common XAI-Guard model interface that all six models must implement. The interface defines five methods: fit for training on a feature matrix and label vector, predict for returning class predictions, predict_proba for returning class probability distributions, save for serialising the fitted model to a versioned artifact file, and load as a class method for deserialising from a file. Define the exact input and output types for each method and the contract that predict_proba must always return probabilities that sum to one per sample.
+#### Subphase 26.1 — Abstract Model Interface
 
-#### Subphase 26.2 — Base Model Class
-> **Prompt:** Implement the abstract base model class for XAI-Guard that all six model implementations inherit from. The base class enforces the common interface by declaring abstract methods for fit, predict, predict_proba, save, and load. It also provides concrete implementations of shared utility methods: get_model_name returning the model's registry name, get_framework returning the ML framework used, and a validate_interface method that verifies the implementing class has correctly implemented all required methods before training begins.
+> **🎭 Role:** Principal ML Platform Architect
+> **📍 Context:** Six model families will be trained and evaluated. The evaluation harness, the Champion/Challenger promotion logic, and the production inference service all depend on a shared interface. Defining it first prevents interface divergence.
+> **🔧 Task:** Define `ml/src/models/base_model.py`. Abstract base class `XAIGuardModel(ABC)` with these abstract methods: `fit(X_train, y_train, X_val, y_val) -> TrainingResult`; `predict(X) -> np.ndarray` (class labels); `predict_proba(X) -> np.ndarray` (class probabilities, shape n_samples x n_classes); `save(path: Path) -> None`; `classmethod load(path: Path) -> XAIGuardModel`; `property feature_names: list[str]`; `property model_family: ModelFamily` (StrEnum). Define `TrainingResult` Pydantic v2 dataclass: `model_family`, `training_time_seconds`, `best_params`, `validation_f1_macro`, `mlflow_run_id`. All implementations must raise `NotFittedError` from sklearn if `predict` is called before `fit`.
+> **📦 Stack:** abc, numpy, pydantic v2, scikit-learn, Python StrEnum
+> **✅ Outcome:** `issubclass(XGBoostModel, XAIGuardModel)` is True for all six model classes. `isinstance(model, XAIGuardModel)` works for runtime type checking in the production inference service.
 
-#### Subphase 26.3 — Standard Metrics Computation Harness
-> **Prompt:** Implement the standard metrics computation harness for XAI-Guard. Given any model implementing the common interface and a test set, the harness computes and returns the full metrics dictionary: accuracy, precision macro, recall macro, F1 macro, ROC-AUC macro OvR, PR-AUC macro, and F1 score per attack class. The harness handles the multi-class case correctly for all metrics. This is the single function called by all six model training scripts after training completes.
+#### Subphase 26.2 — Three-Pillar Metrics Harness
 
-#### Subphase 26.4 — Inference Latency Profiler
-> **Prompt:** Implement the inference latency profiler for XAI-Guard. The profiler measures the end-to-end prediction time for a given model and batch of samples. It runs five warm-up predictions to eliminate JIT compilation overhead, then times 1000 predictions in batches of 1, 16, 64, and 256 samples. For each batch size it reports P50, P95, and P99 latency in milliseconds. This profiler is called by all six model training scripts and results are logged to MLflow.
+> **🎭 Role:** Senior ML Evaluation Engineer
+> **📍 Context:** Every model is evaluated with the same metrics. A shared harness ensures all models are compared on identical grounds and no metric is accidentally computed differently.
+> **🔧 Task:** Implement `ml/src/evaluation/harness.py`. `ModelEvaluationHarness` class with method `evaluate(model: XAIGuardModel, X_test: np.ndarray, y_test: np.ndarray) -> ThreePillarMetrics`. Pillar 1 implementation: `sklearn.metrics.f1_score(average="macro")`, `roc_auc_score(multi_class="ovr")`, `average_precision_score`, `classification_report` as a dict, per-class F1 for each of the 7 taxonomy classes. Pillar 2: call the SHAP sanity checker from Phase 39 stub (returns placeholder until Phase 39). Pillar 3: call `LatencyProfiler` from Subphase 26.3 with 1000 warmup + 5000 timed runs. Return fully populated `ThreePillarMetrics` Pydantic model.
+> **📦 Stack:** sklearn 1.5, numpy, pydantic v2
+> **✅ Outcome:** `harness.evaluate(any_xaiguard_model, X_test, y_test)` returns a `ThreePillarMetrics` with all fields populated. No model-specific code in the harness.
 
-#### Subphase 26.5 — Model Serialization Contract
-> **Prompt:** Define and implement the model serialization contract for XAI-Guard. Every serialised model artifact must include: the model weights or parameters file, the model configuration as a JSON file, the git commit SHA at training time, the DVC data tag used for training, the MLflow run ID, and the feature list the model was trained on. Implement a model artifact packager that creates a versioned ZIP file containing all of these components, and a corresponding unpacker used at inference time.
+#### Subphase 26.3 — Latency Profiler
+
+> **🎭 Role:** Senior Performance Engineering Specialist
+> **📍 Context:** P99 inference latency is the latency budget gate for Champion/Challenger promotion. It must be measured consistently across all models using the same methodology.
+> **🔧 Task:** Implement `ml/src/evaluation/latency_profiler.py`. `LatencyProfiler(warmup_runs: int = 1000, measurement_runs: int = 5000, batch_size: int = 1, device: str = "cpu")`. The `profile(model: XAIGuardModel, X_sample: np.ndarray) -> LatencyProfile` method: runs warmup (discarded), runs measurement, records wall-clock time per prediction using `time.perf_counter_ns` (nanosecond precision), computes P50/P95/P99/max in milliseconds, computes throughput (events/sec). For PyTorch models, set `torch.no_grad()` and `model.eval()`. For CPU measurements, pin to a single CPU core using `os.sched_setaffinity` if available. Return `LatencyProfile` Pydantic model.
+> **📦 Stack:** time (stdlib), numpy, torch, pydantic v2
+> **✅ Outcome:** `profiler.profile(lr_model, X[0:1])` returns a `LatencyProfile` with P99 < 5ms for a simple logistic regression model. P99 measurements are stable across repeated calls (CV < 5%).
+
+#### Subphase 26.4 — Serialisation Contract & Tests
+
+> **🎭 Role:** Senior ML Platform Engineer
+> **📍 Context:** Production model serving loads models from MLflow artifact storage. The serialisation contract must guarantee that a loaded model produces byte-identical predictions to the original.
+> **🔧 Task:** Write `ml/tests/test_model_interface.py`. Test the interface contract for all six model families using test fixtures. For each model: (1) `model.predict(X)` before `fit` raises `NotFittedError`; (2) after `fit`, `predict` returns integer labels with shape `(n_samples,)`; (3) `predict_proba` returns float32 probabilities summing to 1.0 per row; (4) `save` + `load` produces a model whose `predict` output is byte-identical to the original; (5) `feature_names` returns the same list before and after serialisation; (6) `model_family` returns the correct StrEnum value. Use pytest parametrize over all six model families.
+> **📦 Stack:** pytest, numpy, joblib
+> **✅ Outcome:** All six model families pass the 6 interface contract tests. The parametrized test matrix is visible in CI output.
+
+#### Subphase 26.5 — Optuna Study Configuration
+
+> **🎭 Role:** Senior ML Research Engineer with Optuna expertise
+> **📍 Context:** Each model family uses Optuna for hyperparameter search. A shared Optuna configuration ensures studies are reproducible, use the same pruner, and log correctly to MLflow.
+> **🔧 Task:** Implement `ml/src/training/optuna_config.py`. `create_study(model_family: str, direction: str = "maximize", n_trials: int = 50, seed: int = 42) -> optuna.Study`. Configure: `TPESampler(seed=seed, multivariate=True)` for correlated hyperparameter spaces; `MedianPruner(n_startup_trials=10, n_warmup_steps=5)` to kill unpromising trials early; `MLflowCallback(tracking_uri, metric_name="val_f1_macro")` to log each trial as an MLflow child run. Return the configured study. Document the Optuna objective function pattern that all six training scripts follow.
+> **📦 Stack:** optuna 3.6, optuna-integration[mlflow], mlflow 2.14
+> **✅ Outcome:** `create_study("xgboost")` returns a configured study. Running 5 trials creates 5 child MLflow runs under the parent experiment. The best trial is promoted to the parent run.
 
 ---
 
 ## Phase 27 — Logistic Regression Baseline
 
-**Context:** Logistic Regression is the interpretability gold standard. Its coefficients are directly readable as feature weights without any XAI tool. Its performance sets the floor — any more complex model must beat it significantly to justify its added cost.
+**Context:** Logistic Regression sets the performance floor. Any model that does not significantly outperform it on all three pillars does not justify its additional complexity.
 
-#### Subphase 27.1 — Model Implementation
-> **Prompt:** Implement the Logistic Regression model for XAI-Guard following the common base interface from Phase 26. The model wraps scikit-learn's LogisticRegression with the saga solver which supports all regularisation penalties. Implement the get_feature_importance method that returns a dictionary mapping feature names to their coefficient values, representing the model's native interpretability without any XAI tool.
+#### Subphase 27.1 — LR Implementation
 
-#### Subphase 27.2 — Hyperparameter Search Configuration
-> **Prompt:** Configure the Logistic Regression hyperparameter search for XAI-Guard. The search space covers: regularisation strength C over five values from 0.001 to 10; regularisation penalty across L1, L2, and elastic net; and the elastic net L1 ratio for three values. Use exhaustive GridSearchCV with 5-fold StratifiedKFold cross-validation scoring on F1 macro. Log every trial's parameters and validation F1 to MLflow for full transparency.
+> **🎭 Role:** Senior ML Engineer
+> **📍 Context:** Logistic Regression is the simplest possible model. It establishes the baseline that all other models are measured against.
+> **🔧 Task:** Implement `ml/src/models/logistic_regression.py`. `LogisticRegressionModel(XAIGuardModel)`: wraps `sklearn.linear_model.LogisticRegression(multi_class="multinomial", solver="lbfgs", max_iter=1000, n_jobs=-1, class_weight="balanced")`. Load class weights from `ClassWeightCalculator` if `use_class_weights=True`. Implement all interface methods. For serialisation use `joblib.dump`. The `fit` method logs: convergence status, number of iterations, training time, and validation F1 to MLflow. The `predict_proba` output uses the fitted class label order exposed as `model.classes_`.
+> **📦 Stack:** scikit-learn 1.5, joblib, mlflow, numpy
+> **✅ Outcome:** `LogisticRegressionModel().fit(X_train, y_train, X_val, y_val)` completes on CICIDS-2017 in under 60 seconds. All interface contract tests pass.
 
-#### Subphase 27.3 — Training & Metrics Logging
-> **Prompt:** Implement the full training script for the XAI-Guard Logistic Regression model. The script runs the GridSearchCV, extracts the best estimator, evaluates it on the held-out test set using the standard metrics harness from Phase 26, logs all metrics and the best hyperparameters to MLflow, profiles inference latency with the latency profiler from Phase 26, and saves the model artifact using the serialization contract. The script is fully reproducible given the same data version and random seed.
+#### Subphase 27.2 — LR Grid Search & Training
 
-#### Subphase 27.4 — Per-Attack-Type Breakdown
-> **Prompt:** Extend the Logistic Regression evaluation in XAI-Guard to include per-attack-type F1 breakdown. Compute the F1 score separately for each attack class: DDoS, PortScan, BruteForce, Botnet, WebAttack, Infiltration, and Normal. Log these per-class metrics to MLflow under standardised key names. This breakdown is the primary data for the per-attack-type heatmap in the comparative analysis phase.
+> **🎭 Role:** Senior ML Research Engineer
+> **📍 Context:** Logistic Regression has few tunable hyperparameters. GridSearchCV is more appropriate than Optuna for this model given the small search space.
+> **🔧 Task:** Write `ml/scripts/train_logistic_regression.py`. Run GridSearchCV over: `C` ∈ [0.001, 0.01, 0.1, 1.0, 10.0], `penalty` ∈ ["l1", "l2"] (l1 requires `solver="saga"`). Use 5-fold StratifiedKFold. Score on `f1_macro`. After the best params are found, retrain on the full training set. Run evaluation harness. Log all GridSearchCV results as a DataFrame artifact to MLflow. Register the trained model in MLflow Model Registry with the `REGISTERED` status.
+> **📦 Stack:** scikit-learn, mlflow, pandas
+> **✅ Outcome:** The script produces an MLflow run with CV results, best params, and all three-pillar metrics. The model is registered in MLflow.
 
-#### Subphase 27.5 — Model Registration
-> **Prompt:** Register the best XAI-Guard Logistic Regression model in the MLflow Model Registry. Transition its status to Staging and log the registration metadata including the training dataset DVC tag, git commit SHA, and all evaluation metrics. This registered model will be compared against the other five models in the Champion selection phase.
+#### Subphase 27.3 — LR Per-Attack Analysis
 
-#### Subphase 27.6 — Analysis Notebook
-> **Prompt:** Create a Jupyter analysis notebook for the XAI-Guard Logistic Regression baseline. The notebook should include: the ROC curve, the precision-recall curve, the confusion matrix, a bar chart of the top 20 features by absolute coefficient value, and a table comparing training performance vs test performance to identify overfitting. The notebook is a research paper figure source and must be reproducible.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** Overall F1 macro can mask poor recall on specific attack classes. Per-attack analysis identifies which classes Logistic Regression struggles with.
+> **🔧 Task:** Create `ml/notebooks/experiments/01_lr_analysis.ipynb`. Load the best LR model from MLflow. Generate: confusion matrix heatmap, per-class F1 bar chart with colour coding (green ≥ 0.9, yellow 0.7–0.9, red < 0.7), ROC curves per class (one-vs-rest), calibration curve. Write a markdown section titled "LR Research Findings" identifying: which attack classes it fails on, the model's speed advantage, and whether class weights meaningfully improved minority class recall. Log the notebook as an MLflow artifact.
+> **📦 Stack:** matplotlib, seaborn, sklearn, mlflow
+> **✅ Outcome:** The notebook runs end-to-end. The per-class F1 chart is saved as a publishable figure.
 
 ---
 
 ## Phase 28 — Random Forest Model
 
-**Context:** Random Forest tests whether ensemble tree methods significantly outperform linear models. It is robust to outliers, handles non-linear interactions, and produces native feature importance via mean decrease in impurity.
+**Context:** Random Forest provides strong non-linear performance and native feature importance. It is the classical ML champion before XGBoost and deep learning are compared.
 
-#### Subphase 28.1 — Model Implementation
-> **Prompt:** Implement the Random Forest model for XAI-Guard following the common base interface. The model wraps scikit-learn's RandomForestClassifier. Implement the get_feature_importance method returning MDI (mean decrease in impurity) feature importances. Add an additional get_oob_score method that returns the out-of-bag score when the model is trained with oob_score enabled, providing an unbiased performance estimate without a separate validation set.
+#### Subphase 28.1 — RF Implementation
 
-#### Subphase 28.2 — Randomized Search Configuration
-> **Prompt:** Configure the Random Forest hyperparameter search for XAI-Guard. Use RandomizedSearchCV with 50 iterations and 5-fold StratifiedKFold to search over: number of estimators in a range from 100 to 500, maximum depth across None and values from 10 to 30, minimum samples to split across values 2 5 and 10, and class weight across balanced and balanced_subsample. Log all 50 trials to MLflow.
+> **🎭 Role:** Senior ML Engineer
+> **📍 Context:** Random Forest is implemented using the same XAIGuardModel interface as LR.
+> **🔧 Task:** Implement `ml/src/models/random_forest.py`. `RandomForestModel(XAIGuardModel)` wrapping `sklearn.ensemble.RandomForestClassifier(n_jobs=-1, class_weight="balanced_subsample", random_state=42)`. Use joblib for serialisation. The `fit` method logs: `n_estimators`, `max_depth`, feature importances as a JSON artifact, training time, and OOB score if `oob_score=True`. After training, compute and log the top 20 features by Gini importance.
+> **📦 Stack:** scikit-learn, joblib, mlflow
+> **✅ Outcome:** All interface contract tests pass. Feature importances are logged and visible in the MLflow artifact viewer.
 
-#### Subphase 28.3 — Training, Metrics & Latency
-> **Prompt:** Implement the full training script for the XAI-Guard Random Forest model. Run RandomizedSearchCV, evaluate the best estimator on the test set with the standard metrics harness, compute the OOB score, log all metrics and hyperparameters to MLflow, profile inference latency at four batch sizes, measure total training time in minutes, and save the model artifact. Compare the best F1 against the Logistic Regression baseline in the MLflow run description.
+#### Subphase 28.2 — RF Randomized Search & Latency Profiling
 
-#### Subphase 28.4 — Per-Attack-Type Breakdown & Registration
-> **Prompt:** Add per-attack-type F1 breakdown to the XAI-Guard Random Forest evaluation and register the best model in the MLflow Model Registry. Log the per-class F1 metrics using the same standardised keys as the Logistic Regression model to enable direct comparison in the comparative analysis notebook.
+> **🎭 Role:** Senior ML Research Engineer
+> **📍 Context:** Random Forest has a large hyperparameter space. RandomizedSearchCV is more efficient than grid search here. Latency profiling is critical because large forests are slow at inference time.
+> **🔧 Task:** Write `ml/scripts/train_random_forest.py`. Use `RandomizedSearchCV` with 30 iterations over: `n_estimators` ∈ [100, 200, 500, 1000], `max_depth` ∈ [None, 10, 20, 30], `min_samples_leaf` ∈ [1, 2, 4], `max_features` ∈ ["sqrt", "log2", 0.3]. After finding best params, retrain on the full training set. Run evaluation harness and latency profiler with batch_size=1 (single-event inference as in production). Log inference P99, the number of trees, and the model file size. Register in MLflow.
+> **📦 Stack:** scikit-learn, mlflow, numpy
+> **✅ Outcome:** The training script produces an MLflow run. Latency P99 is logged. The RF model is registered.
 
-#### Subphase 28.5 — Analysis Notebook
-> **Prompt:** Create a Jupyter analysis notebook for the XAI-Guard Random Forest model. Include: ROC curve overlaid with the Logistic Regression curve for visual comparison, feature importance bar chart showing the top 25 features by MDI score, confusion matrix, and a learning curve showing training F1 vs validation F1 as the number of estimators increases. The feature importance chart is a key research paper figure.
+#### Subphase 28.3 — RF Analysis Notebook
+
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** Random Forest provides native feature importance, unlike LR, providing a first XAI comparison point before SHAP is computed in Phase 39.
+> **🔧 Task:** Create `ml/notebooks/experiments/02_rf_analysis.ipynb`. Load the best RF from MLflow. Generate: per-class F1 comparison with LR (grouped bar chart); Gini importance vs SHAP importance correlation stub (placeholder for Phase 39); the memory footprint of the RF model file vs LR model file; a latency comparison table (LR P99 vs RF P99). Write "RF Research Findings" section identifying: accuracy gain over LR, the latency-accuracy trade-off, and which features the RF considers most important.
+> **📦 Stack:** matplotlib, mlflow, pandas
+> **✅ Outcome:** Notebook runs end-to-end. The LR vs RF comparison table is saved for the research paper.
 
 ---
 
-## Phase 29 — XGBoost Model & Champion Registration
+## Phase 29 — XGBoost Champion Registration
 
-**Context:** XGBoost consistently wins on tabular data across industry and research. It becomes the initial Champion model in the registry. All deep learning models must beat it to justify their computational cost, making this the most important baseline.
+**Context:** XGBoost is the expected Champion model — the best balance of accuracy, speed, and explainability for tabular network security data. It becomes the initial Champion after training.
 
-#### Subphase 29.1 — Model Implementation
-> **Prompt:** Implement the XGBoost model for XAI-Guard following the common base interface. The model uses xgboost's native API with DMatrix for efficient data loading. Implement the get_feature_importance method returning gain-based feature importance scores, which are compatible with the SHAP TreeExplainer used in Phase 39. Add support for the scale_pos_weight parameter to handle class imbalance at the model level as an alternative to SMOTE.
+#### Subphase 29.1 — XGBoost Implementation
 
-#### Subphase 29.2 — Optuna Study Configuration
-> **Prompt:** Configure the Optuna hyperparameter study for XAI-Guard XGBoost. Define the search space covering: number of estimators from 50 to 500, max depth from 3 to 10, learning rate on a log scale from 0.001 to 0.3, subsample from 0.6 to 1.0, column sample by tree from 0.6 to 1.0, L1 regularisation from 0 to 1, and L2 regularisation from 0.5 to 2. Use the TPE sampler with MedianPruner for efficient search. Configure the MLflow callback to log every trial automatically.
+> **🎭 Role:** Senior ML Engineer with XGBoost expertise
+> **📍 Context:** XGBoost is the strong tabular baseline. It natively supports multi-class, sparse data, and sample weights.
+> **🔧 Task:** Implement `ml/src/models/xgboost_model.py`. `XGBoostModel(XAIGuardModel)` wrapping `xgboost.XGBClassifier(tree_method="hist", device="cpu", eval_metric=["mlogloss", "merror"], enable_categorical=False, random_state=42)`. The `fit` method: applies class weights as `sample_weight` array, uses early stopping with validation set (patience=20 rounds), logs the learning curve (train_loss, val_loss per boosting round) as an MLflow metric per step, and logs the best iteration. The `save`/`load` uses `model.save_model(path)` / `model.load_model(path)` for XGBoost's native format.
+> **📦 Stack:** xgboost 2.0.3, mlflow, numpy
+> **✅ Outcome:** All interface contract tests pass. Early stopping fires correctly. The learning curve is visible in the MLflow metrics tab.
 
-#### Subphase 29.3 — Optuna Training Loop
-> **Prompt:** Implement the Optuna training loop for XAI-Guard XGBoost. The objective function creates a trial-specific XGBoost model, trains it with early stopping on a validation split, and returns the validation F1 macro as the optimisation target. Run 100 trials. After the study completes, retrieve the best trial's parameters, retrain the final model on the full training set with those parameters, and evaluate on the held-out test set.
+#### Subphase 29.2 — Optuna Hyperparameter Search
 
-#### Subphase 29.4 — SHAP Sanity Check
-> **Prompt:** Add a SHAP sanity check to the XAI-Guard XGBoost training script. After the final model is trained, compute SHAP values for 100 test samples using TreeExplainer and verify that the top three features by mean absolute SHAP value make domain sense for cybersecurity threat detection. Log the top 10 SHAP feature importances to MLflow as a run artifact. This serves as an early XAI validation before the full XAI phase.
+> **🎭 Role:** Senior ML Research Engineer
+> **📍 Context:** XGBoost has many hyperparameters and Optuna's TPE sampler is the most effective search strategy for it.
+> **🔧 Task:** Write `ml/scripts/train_xgboost.py`. Define the Optuna objective: suggest `n_estimators` ∈ [100, 2000], `max_depth` ∈ [3, 12], `learning_rate` log-uniform [0.001, 0.3], `subsample` [0.5, 1.0], `colsample_bytree` [0.5, 1.0], `reg_alpha` log-uniform [1e-8, 1.0], `reg_lambda` log-uniform [1e-8, 1.0]. Run 100 Optuna trials with MedianPruner. After the best trial, retrain on the full training set with the best params. Run evaluation harness and register in MLflow as `CHAMPION` status (the first Champion).
+> **📦 Stack:** optuna 3.6, xgboost, mlflow
+> **✅ Outcome:** 100 Optuna trials complete. Best params are logged. The XGBoost model is registered in MLflow Model Registry with the CHAMPION alias.
 
-#### Subphase 29.5 — Champion Model Registration
-> **Prompt:** Register the best XGBoost model as the initial Champion in the XAI-Guard model registry. Transition its status to Production in the MLflow Model Registry and record its status as champion in the PostgreSQL model_registry table. Update the champion model alias in MLflow so the inference service can load it by alias rather than by version number. Log the promotion event in the model promotion history table.
+#### Subphase 29.3 — SHAP Sanity Check
 
-#### Subphase 29.6 — Optuna & Analysis Notebook
-> **Prompt:** Create a Jupyter analysis notebook for the XAI-Guard XGBoost model and Optuna study. Include: the Optuna parallel coordinates plot showing hyperparameter relationships with trial objective values, the Optuna hyperparameter importance chart, the XGBoost training and validation loss curves, the confusion matrix, per-attack-type F1 bar chart, and the SHAP summary beeswarm plot for the 100 sanity-check samples.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** XGBoost's SHAP values are computed natively by the XGBoost library. A sanity check now validates that SHAP values are sensible before the full SHAP analysis in Phase 39.
+> **🔧 Task:** In the training script, after training completes: compute SHAP values for 100 test samples using `shap.TreeExplainer(model)`. Verify: SHAP values sum to the prediction log-odds for each sample (|sum(SHAP) + base_value - predict_log_odds| < 0.01 for all samples). Plot a SHAP beeswarm summary for the top 10 features and log as an MLflow artifact. Log the mean absolute SHAP value per feature as metrics.
+> **📦 Stack:** shap 0.45, matplotlib, mlflow
+> **✅ Outcome:** The SHAP additivity check passes for all 100 test samples. The beeswarm plot is visible as an MLflow artifact.
+
+#### Subphase 29.4 — XGBoost Analysis Notebook
+
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** XGBoost is the Champion. Its analysis notebook is the most detailed and serves as the primary reference for the research paper.
+> **🔧 Task:** Create `ml/notebooks/experiments/03_xgboost_analysis.ipynb`. Generate: per-class F1 comparison table for LR, RF, XGBoost; feature importance comparison (XGBoost Gain vs SHAP); Optuna optimisation history plot; learning curve (train vs val loss); calibration curve; latency distribution histogram (5000 single-event predictions); model file size comparison. Write "XGBoost Research Findings" with the answers to RQ1 (classical vs deep learning) and RQ6 (cost-efficiency) from the XGBoost perspective.
+> **📦 Stack:** optuna, shap, matplotlib, mlflow
+> **✅ Outcome:** Notebook runs end-to-end. The three-model comparison table is production-quality for the research paper.
 
 ---
 
 ## Phase 30 — LSTM Architecture
 
-**Context:** LSTM tests whether sequential event modelling captures temporal attack patterns that tabular models miss — for example a port scan followed by a targeted exploit. This phase builds and validates the architecture before training.
+**Context:** LSTM is the first deep learning model. It processes event sequences to detect attack patterns that span multiple connections, a capability tabular models cannot match.
 
-#### Subphase 30.1 — BiLSTM Model Design
-> **Prompt:** Design and implement the bidirectional LSTM model for XAI-Guard following the common base interface. The architecture processes input sequences of shape (batch, sequence_length, n_features) through a configurable-depth BiLSTM, takes the last hidden state from both directions, applies dropout, and passes through a linear classification head. The model must be configurable via a parameter dictionary covering hidden size, number of layers, dropout rate, and whether to use bidirectional processing.
+#### Subphase 30.1 — BiLSTM Architecture
 
-#### Subphase 30.2 — PyTorch Lightning Trainer
-> **Prompt:** Implement the PyTorch Lightning trainer module for XAI-Guard LSTM. Define training_step, validation_step, and test_step methods. Implement configure_optimizers using AdamW with a CosineAnnealingLR scheduler. Add early stopping on validation F1 macro with a patience of 5 epochs. Add model checkpointing that saves the epoch with the highest validation F1. Log training loss, validation loss, validation F1, and validation AUC to MLflow at every epoch.
+> **🎭 Role:** Senior Deep Learning Engineer
+> **📍 Context:** A bidirectional LSTM reads the event sequence in both directions, capturing context from both past and future events in the window.
+> **🔧 Task:** Implement `ml/src/models/lstm_model.py`. `BiLSTMModel(XAIGuardModel)` as a PyTorch Lightning Module. Architecture: input projection `Linear(n_features, hidden_dim)` + GELU; `nn.LSTM(hidden_dim, hidden_dim, num_layers=2, batch_first=True, dropout=0.3, bidirectional=True)`; classification head `Sequential(Linear(2*hidden_dim, hidden_dim), GELU, Dropout(0.3), Linear(hidden_dim, n_classes))`. Use `nn.CrossEntropyLoss(weight=class_weights)`. Training loop with gradient clipping (`nn.utils.clip_grad_norm_` at 1.0). `predict_proba` uses `F.softmax` on the output.
+> **📦 Stack:** torch 2.3, pytorch-lightning, numpy
+> **✅ Outcome:** Forward pass with input shape `(batch=32, seq=10, features=50)` produces output shape `(32, 7)`. Gradient clipping prevents NaN loss on adversarial inputs.
 
-#### Subphase 30.3 — Training Configuration
-> **Prompt:** Define the training configuration for the XAI-Guard LSTM model. Specify the default hyperparameters: maximum 50 epochs with early stopping, batch size as a tunable parameter, gradient clipping at 1.0 to prevent exploding gradients in deep LSTM layers, a warm-up period of 5 epochs before the cosine learning rate decay begins, and the random seed for reproducibility. Store this configuration as a YAML file that is loaded by the training script and logged to MLflow.
+#### Subphase 30.2 — PyTorch Lightning Trainer Config
 
-#### Subphase 30.4 — LSTM Architecture Tests
-> **Prompt:** Write unit tests for the XAI-Guard LSTM architecture. Verify: the forward pass produces output of the correct shape for various batch sizes and sequence lengths; the model correctly handles sequences of length 1; the model's parameter count matches the expected value for the default configuration; gradient flow is correct (no vanishing gradients on the first backward pass with random input); and the model can be saved and loaded with identical weights.
+> **🎭 Role:** Senior Deep Learning Engineer
+> **📍 Context:** PyTorch Lightning abstracts the training loop, checkpointing, and logging. The trainer configuration controls overfitting prevention and hardware utilisation.
+> **🔧 Task:** Implement the Lightning Trainer configuration for LSTM training. Configure: `ModelCheckpoint(monitor="val_f1_macro", mode="max", save_top_k=1)` to save the best checkpoint by validation F1; `EarlyStopping(monitor="val_f1_macro", mode="max", patience=10)` to stop training when validation F1 stops improving for 10 epochs; `MLFlowLogger(experiment_name=experiment_name, run_name=run_name)` for automatic metric logging per epoch; precision `bf16-mixed` if CUDA is available, `32` otherwise. Maximum epochs: 100.
+> **📦 Stack:** pytorch-lightning, mlflow
+> **✅ Outcome:** The trainer saves the best checkpoint automatically. `val_f1_macro` is logged per epoch in MLflow. Early stopping fires after 10 epochs without improvement.
+
+#### Subphase 30.3 — LSTM Unit Tests
+
+> **🎭 Role:** Senior Test Engineer
+> **📍 Context:** Deep learning models have more failure modes than classical models. Unit tests catch architectural errors before expensive training.
+> **🔧 Task:** Write `ml/tests/test_lstm.py`. Test: (1) forward pass produces correct output shape; (2) `predict_proba` output sums to 1.0 per sample (within 1e-5); (3) gradient flow: all parameter gradients are non-None after a backward pass; (4) `save` + `load` produces byte-identical `predict` output; (5) the model raises `NotFittedError` if `predict` is called before `fit`; (6) gradient clipping prevents gradient norm exceeding 1.0 during training; (7) the bidirectional flag doubles the hidden dimension correctly.
+> **📦 Stack:** pytest, torch, numpy
+> **✅ Outcome:** All 7 LSTM unit tests pass in under 30 seconds on CPU.
 
 ---
 
 ## Phase 31 — LSTM Training & Optimisation
 
-**Context:** Tune the LSTM's hyperparameters using Optuna, run the full training, compute comprehensive metrics, and profile inference latency across batch sizes.
+**Context:** Train the LSTM with Optuna hyperparameter search and register the best model for comparison with XGBoost.
 
-#### Subphase 31.1 — Optuna Hyperparameter Search
-> **Prompt:** Configure and run the Optuna hyperparameter search for XAI-Guard LSTM. The search space covers: hidden size in a range from 64 to 256, number of LSTM layers from 1 to 3, dropout rate from 0.1 to 0.5, learning rate on a log scale, batch size across 64 128 and 256, and sequence length across 5 10 and 20. Run 50 trials. Use the MLflow callback to log every trial. Prune unpromising trials after 10 epochs using the MedianPruner.
+#### Subphase 31.1 — Optuna LSTM Search
 
-#### Subphase 31.2 — Full Training Run
-> **Prompt:** Implement the full LSTM training run for XAI-Guard. After the Optuna study identifies the best hyperparameters, retrain the LSTM on the full training set (not just the search validation split) using those hyperparameters with early stopping. Log the complete training curves (loss and F1 per epoch) to MLflow. Save the best checkpoint using the PyTorch Lightning ModelCheckpoint callback.
+> **🎭 Role:** Senior ML Research Engineer
+> **📍 Context:** LSTM training is GPU-hours expensive. The Optuna search must be efficient: pruning unpromising trials early to save compute.
+> **🔧 Task:** Write `ml/scripts/train_lstm.py`. Define the Optuna objective: suggest `hidden_dim` ∈ [64, 128, 256, 512], `num_layers` ∈ [1, 2, 3], `dropout` [0.1, 0.5], `learning_rate` log-uniform [1e-5, 1e-2], `batch_size` ∈ [128, 256, 512], `weight_decay` log-uniform [1e-6, 1e-3]. Use `MedianPruner`. Run 30 Optuna trials (reduced from XGBoost due to GPU cost). After the best trial, retrain for the full 100 epochs (or until early stopping). Log GPU memory usage per trial as an MLflow metric.
+> **📦 Stack:** optuna, pytorch-lightning, mlflow, torch
+> **✅ Outcome:** 30 trials complete. GPU memory is logged. Best LSTM model is registered in MLflow.
 
-#### Subphase 31.3 — Metrics Computation & Registration
-> **Prompt:** Evaluate the trained XAI-Guard LSTM on the held-out test set using the standard metrics harness from Phase 26. Compute per-attack-type F1 breakdown. Profile inference latency at batch sizes 1, 16, 64, and 256 on both CPU and GPU if available. Log all metrics and latency profiles to MLflow. Register the model in the MLflow Model Registry and record it as a candidate challenger in the PostgreSQL model registry table.
+#### Subphase 31.2 — Attention Weight Extraction
 
-#### Subphase 31.4 — LSTM Analysis Notebook
-> **Prompt:** Create a Jupyter analysis notebook for the XAI-Guard LSTM model. Include: training and validation loss curves across epochs, the Optuna trial history showing improvement over trials, confusion matrix on the test set, per-attack-type F1 bar chart compared with XGBoost, and a latency-vs-batch-size line chart for both CPU and GPU. This notebook is a key source for the comparative analysis in Phase 37.
+> **🎭 Role:** Senior Deep Learning Engineer
+> **📍 Context:** While LSTM does not have Transformer-style attention, its hidden state sequence can be used for a form of temporal attribution. Saving hidden states enables the Phase 41 attention-based XAI analysis.
+> **🔧 Task:** Add a `predict_with_hidden_states(X_seq) -> tuple[np.ndarray, np.ndarray]` method to `BiLSTMModel`. This method returns both the predicted probabilities and the full LSTM hidden state sequence of shape `(n_samples, seq_len, 2*hidden_dim)`. These hidden states are used in Phase 41 to compute temporal attention scores using the method from "Attention is not Explanation" (Jain & Wallace, 2019). Log the average hidden state norm per timestep for the 100 test samples to MLflow.
+> **📦 Stack:** torch, numpy, mlflow
+> **✅ Outcome:** `model.predict_with_hidden_states(X_seq)` returns correct shapes. Hidden state norms are logged.
 
 ---
 
-## Phase 32 — LSTM Evaluation
+## Phase 32 — LSTM Evaluation & Research Findings
 
-**Context:** Interpret the LSTM results in the context of the research questions. Document whether and by how much LSTM outperforms XGBoost, and what temporal patterns it captures that tabular models miss.
+**Context:** Evaluate LSTM against XGBoost on all three pillars to answer RQ1 (classical vs deep learning) and RQ2 (LSTM vs Transformer).
 
-#### Subphase 32.1 — Sequence vs Tabular Performance Analysis
-> **Prompt:** Write the sequence-versus-tabular performance analysis for XAI-Guard LSTM. Compare LSTM's F1 macro, ROC-AUC, and per-attack-type F1 against XGBoost's results on the same test split. Identify specific attack types where LSTM outperforms XGBoost significantly and document the hypothesis for why sequence modelling helps for those specific attack patterns. Identify attack types where XGBoost wins and document why.
+#### Subphase 32.1 — Sequence vs Tabular Analysis
 
-#### Subphase 32.2 — Sensitivity to Sequence Length
-> **Prompt:** Run a sensitivity analysis on the XAI-Guard LSTM's sequence length hyperparameter. Train the LSTM with sequence lengths of 5, 10, 15, and 20 events while holding all other hyperparameters at their optimal values. Plot F1 macro and inference latency against sequence length. Document the optimal trade-off point and the rate at which performance saturates as sequence length increases.
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** LSTM uses 10-event sequences. XGBoost uses single events. The sequence advantage is measured only if the sequence models are evaluated on the same events as the tabular models.
+> **🔧 Task:** Create `ml/notebooks/experiments/04_lstm_analysis.ipynb`. Compare LSTM vs XGBoost on: (1) overall F1 macro; (2) per-class F1 (grouped bar chart); (3) latency (LSTM will be 3-10x slower — quantify the gap); (4) memory footprint. Specifically analyse: attacks that require sequence context to detect (BruteForce, PortScan) vs attacks detectable from single events (DDoS volume). Write "LSTM vs XGBoost Research Findings" answering RQ1 with specific numbers.
+> **📦 Stack:** matplotlib, mlflow, pandas, numpy
+> **✅ Outcome:** The notebook produces a publishable comparison table with LSTM vs XGBoost across all three pillars.
 
-#### Subphase 32.3 — Phase Findings Documentation
-> **Prompt:** Write the LSTM research findings section for XAI-Guard. Document: the best LSTM architecture configuration, the performance delta versus XGBoost, the specific attack types where temporal modelling helps, the computational cost (training time, inference latency, memory) relative to XGBoost, and a preliminary assessment of whether the LSTM should be considered as the Challenger model or whether the Transformer architecture is needed. This feeds directly into the comparative analysis in Phase 37.
+#### Subphase 32.2 — Sequence Length Sensitivity Analysis
+
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** The sequence window length (default 10) is an architectural choice. Testing multiple window lengths reveals the optimal setting and informs the Transformer architecture in Phase 33.
+> **🔧 Task:** Add a sensitivity analysis section to the LSTM notebook. Train three additional LSTM variants with `window_size` = 5, 20, 30 (using the best hyperparameters from Phase 31). Compare F1 macro, BruteForce F1, PortScan F1, and latency P99 across all four window sizes. Plot as a 4-panel figure with window size on the x-axis. Determine the optimal window size. Document the recommendation in `ml/configs/sequence_config.yaml`.
+> **📦 Stack:** pytorch-lightning, matplotlib, mlflow
+> **✅ Outcome:** The sensitivity analysis determines the optimal window size. `ml/configs/sequence_config.yaml` is updated with the recommended value.
 
 ---
 
@@ -152,11 +229,12 @@
 | Phase | Title | Subphases |
 |-------|-------|-----------|
 | P26 | Common Model Interface Design | 5 |
-| P27 | Logistic Regression Baseline | 6 |
-| P28 | Random Forest Model | 5 |
-| P29 | XGBoost Model & Champion Registration | 6 |
-| P30 | LSTM Architecture | 4 |
-| P31 | LSTM Training & Optimisation | 4 |
-| P32 | LSTM Evaluation | 3 |
+| P27 | Logistic Regression Baseline | 3 |
+| P28 | Random Forest Model | 3 |
+| P29 | XGBoost Champion Registration | 4 |
+| P30 | LSTM Architecture | 3 |
+| P31 | LSTM Training & Optimisation | 2 |
+| P32 | LSTM Evaluation & Research Findings | 2 |
 
-**Previous ←** [03 — Feature Engineering & Experiment Tracking](03-data-engineering.md) | **Next →** [05 — Transformer Models & Comparative Analysis](05-xai-and-model-evaluation.md)
+**Previous ←** [03 — Feature Engineering](03-data-engineering.md) | **Next →** [05 — Transformer & XAI Evaluation](05-xai-and-model-evaluation.md)
+

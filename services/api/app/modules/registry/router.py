@@ -1,9 +1,8 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+router = APIRouter(prefix="/models", tags=["registry"])
 
 
 @router.get("/")
 def get_models():
-    """Model registry overview."""
     return {"champion": "XGBoost", "challengers": []}

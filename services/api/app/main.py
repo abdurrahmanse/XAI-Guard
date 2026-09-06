@@ -1,28 +1,50 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from prometheus_fastapi_instrumentator import Instrumentator
+import logging
 
-from app.api_router import api_router
 from app.core.config import settings
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-)
+# Module Routers
+from app.modules.events.router import router as events_router
+from app.modules.inference.router import router as inference_router
+from app.modules.registry.router import router as registry_router
+from app.modules.alerts.router import router as alerts_router
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+logger = logging.getLogger(__name__)
 
-app.include_router(api_router, prefix=settings.API_V1_STR)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting up XAI-Guard API...")
+    # Initialize DB engines, warm caches, load Champion model here
+    yield
+    logger.info("Shutting down XAI-Guard API...")
+    # Cleanup DB engines and Celery queues here
 
+def create_application() -> FastAPI:
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        version="1.0.0",
+        openapi_url="/openapi.json",
+        lifespan=lifespan
+    )
 
-@app.get("/")
-def root():
-    return {
-        "message": f"Welcome to {settings.PROJECT_NAME}. See /docs for API documentation."
-    }
+    # Middleware
+    # (CORS, Security headers would be added here)
+
+    # Prometheus Instrumentation
+    Instrumentator().instrument(app).expose(app)
+
+    # Register Module Routers
+    app.include_router(events_router, prefix=f"{settings.API_V1_STR}/events", tags=["events"])
+    app.include_router(inference_router, prefix=f"{settings.API_V1_STR}/inference", tags=["inference"])
+    app.include_router(registry_router, prefix=f"{settings.API_V1_STR}/registry", tags=["registry"])
+    app.include_router(alerts_router, prefix=f"{settings.API_V1_STR}/alerts", tags=["alerts"])
+
+    @app.get("/v1/health", tags=["core"])
+    async def health_check():
+        return {"status": "healthy", "version": "1.0.0"}
+
+    return app
+
+app = create_application()

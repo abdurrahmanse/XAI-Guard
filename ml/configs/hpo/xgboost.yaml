@@ -1,26 +1,58 @@
-optimizer: Optuna
-trials: 50
-validation: 5-fold StratifiedKFold
+# XAI-Guard HPO Configuration: XGBoost
+# -----------------------------------------------------------
+# Role: The reigning champion of tabular data. Expected to set the high-water 
+# mark for F1-Macro that Deep Learning models must attempt to dethrone.
+
+optimization:
+  engine: "Optuna"
+  sampler: "TPESampler"
+  trials: 100
+  metric: "f1_macro"
+  direction: "maximize"
+
+validation_strategy:
+  method: "StratifiedKFold"
+  folds: 5
+  shuffle: true
+  
+# Stop training if validation F1 does not improve for 20 consecutive boosting rounds.
 early_stopping_rounds: 20
-params:
+
+hyperparameters:
+  # Step size shrinkage used in update to prevent overfitting.
   learning_rate:
-    type: float
-    range:
-    - 0.01
-    - 0.3
-    scale: log
+    type: "float"
+    low: 0.01
+    high: 0.3
+    scale: "log"
+    
+  # Maximum depth of a tree. Higher values make the model more complex.
   max_depth:
-    type: int
-    range:
-    - 3
-    - 10
+    type: "int"
+    low: 3
+    high: 12
+    
+  # Minimum sum of instance weight (hessian) needed in a child.
+  min_child_weight:
+    type: "int"
+    low: 1
+    high: 7
+    
+  # Subsample ratio of the training instances. Prevents overfitting.
   subsample:
-    type: float
-    range:
-    - 0.5
-    - 1.0
+    type: "float"
+    low: 0.6
+    high: 1.0
+    
+  # Subsample ratio of columns when constructing each tree.
   colsample_bytree:
-    type: float
-    range:
-    - 0.5
-    - 1.0
+    type: "float"
+    low: 0.6
+    high: 1.0
+
+  # L2 regularization term on weights.
+  lambda:
+    type: "float"
+    low: 1e-3
+    high: 10.0
+    scale: "log"

@@ -1,27 +1,54 @@
-optimizer: Optuna
-trials: 30
-validation: Epoch-based
-early_stopping_patience: 5
-mixed_precision: true
-params:
+# XAI-Guard HPO Configuration: Lightweight Transformer
+# -----------------------------------------------------------
+# Role: A heavily constrained Transformer designed to survive the strict <100ms CPU
+# latency gate while still attempting to leverage self-attention for high F1 (RQ6).
+
+optimization:
+  engine: "Optuna"
+  sampler: "TPESampler"
+  trials: 50
+  metric: "val_f1_macro"
+  direction: "maximize"
+
+validation_strategy:
+  method: "StratifiedKFold"
+  folds: 3
+
+training_dynamics:
+  epochs: 150
+  early_stopping_patience: 20
+  mixed_precision: true
+
+hyperparameters:
+  # Highly constrained embedding dimension to ensure CPU inference viability.
   d_model:
-    type: int
-    choices:
-    - 32
-    - 64
+    type: "categorical"
+    choices: [32, 64, 128]
+    
+  # Constrained attention heads.
   nhead:
-    type: int
-    choices:
-    - 2
-    - 4
+    type: "categorical"
+    choices: [2, 4, 8]
+    
+  # Maximum of 3 layers to prevent sequential depth latency bloat.
   num_layers:
-    type: int
-    range:
-    - 1
-    - 2
+    type: "int"
+    low: 1
+    high: 3
+    
+  # Constrained feedforward network.
+  dim_feedforward:
+    type: "categorical"
+    choices: [128, 256, 512]
+
+  # AdamW learning rate.
   learning_rate:
-    type: float
-    range:
-    - 0.0001
-    - 0.005
-    scale: log
+    type: "float"
+    low: 1e-4
+    high: 1e-3
+    scale: "log"
+    
+  warmup_steps:
+    type: "int"
+    low: 500
+    high: 2000

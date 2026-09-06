@@ -1,22 +1,38 @@
-optimizer: GridSearchCV
-validation: 5-fold StratifiedKFold
-params:
+# XAI-Guard HPO Configuration: Logistic Regression (Baseline)
+# -----------------------------------------------------------
+# Role: Provides the absolute minimum performance baseline. All deep learning
+# models must strictly justify their latency cost against this model's F1 score.
+
+optimization:
+  # Using exhaustive Grid Search since the parameter space is extremely small and convex.
+  engine: "GridSearchCV"
+  metric: "f1_macro"
+  direction: "maximize"
+
+validation_strategy:
+  method: "StratifiedKFold"
+  folds: 5
+  shuffle: true
+
+hyperparameters:
+  # Inverse of regularization strength. Smaller values specify stronger regularization.
   C:
-    type: float
-    choices:
-    - 0.01
-    - 0.1
-    - 1.0
-    - 10.0
-    - 100.0
-    scale: log
+    type: "float"
+    choices: [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
+    scale: "log"
+    
+  # Norm used in the penalization.
   penalty:
-    type: categorical
-    choices:
-    - l1
-    - l2
+    type: "categorical"
+    choices: ["l1", "l2"]
+    
+  # Algorithm to use in the optimization problem. 
+  # 'saga' is chosen as it supports both l1/l2 and scales well to large datasets (CICIDS-2017).
   solver:
-    type: categorical
-    choices:
-    - liblinear
-    - saga
+    type: "categorical"
+    choices: ["liblinear", "saga"]
+
+  # Maximum number of iterations taken for the solvers to converge.
+  max_iter:
+    type: "int"
+    choices: [1000, 2500, 5000]

@@ -1,200 +1,272 @@
 # 08 — Admin Panel, MLOps & Production
 
-> **Phases 56–63** | XAI Panel and Metrics Dashboard, Admin Panel, Champion/Challenger UI, automated ML pipeline, observability, security hardening, CI/CD, Kubernetes, Terraform, production hardening, research report, and project completion.
+> **Phases 56–63** | XAI Panel & Metrics Dashboard, Admin Panel, Champion/Challenger UI, automated ML pipeline, observability, CI/CD, Kubernetes, Terraform, production hardening, research paper, and v1.0.0 launch.
 >
-> **How to use:** Pick one subphase. Copy its **Prompt** into your AI code editor. Implement it. Move to the next subphase.
+> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
 
 ---
 
 ## Phase 56 — XAI Panel & Metrics Dashboard Components
 
-**Context:** These components complete the analyst dashboard. The XAI panel gives analysts the full explanation for a threat. The metrics dashboard gives situational awareness of model performance.
+**Context:** Complete the analyst dashboard. The XAI panel gives analysts full explanation detail. The metrics dashboard provides model performance situational awareness for the duty analyst.
 
-#### Subphase 56.1 — XAI Panel Component
-> **Prompt:** Implement the XAIPanel component for the XAI-Guard security dashboard. The component accepts a prediction ID, fetches the SHAP explanation via the useExplanation SWR hook, and renders a full SHAP waterfall chart using Recharts horizontal BarChart with features on the y-axis and SHAP values on the x-axis. Positive contributions use red-warm colours and negative contributions use blue-cool colours. A base value reference line is drawn on the chart. While the explanation is loading show a skeleton placeholder.
+#### Subphase 56.1 — XAIPanel with SHAP Waterfall Chart
 
-#### Subphase 56.2 — SHAP/LIME Toggle
-> **Prompt:** Add a SHAP/LIME explanation method toggle to the XAI-Guard XAIPanel component. When the analyst switches to LIME the component dispatches a LIME explanation request for the same prediction and polls for the result using the task ID. Display the explanation computation time for each method so analysts understand the speed trade-off. If the LIME explanation is not yet computed show an estimating indicator with elapsed time.
+> **🎭 Role:** Senior React Engineer specialising in data visualisation
+> **📍 Context:** The XAI panel opens from the ThreatDetailPanel's "XAI Details" button. It shows the full SHAP explanation as a Recharts horizontal bar chart, with the base value as a reference line — a visual representation of the SHAP waterfall plot.
+> **🔧 Task:** Implement `apps/web/components/xai/XAIPanel.tsx`. Uses `useExplanation(taskId)` with polling. While status=processing: shadcn/ui `Skeleton` placeholder matching chart dimensions. When complete: Recharts `BarChart` (horizontal layout) with features on y-axis and SHAP values on x-axis. Positive bars `fill="#EF4444"`, negative bars `fill="#3B82F6"`. `ReferenceLine x={base_value}` with label "Base". Display prediction confidence and base value above chart. Display `computation_time_ms` and `stability_score` below. Include the SHAP/LIME toggle `Tabs` component from Subphase 56.2.
+> **📦 Stack:** Recharts v2, @tanstack/react-query v5, shadcn/ui Skeleton + Tabs
+> **✅ Outcome:** The waterfall chart renders for an XGBoost prediction. The base value reference line is at the correct x position. Chart animates on first render.
+
+#### Subphase 56.2 — SHAP/LIME Method Toggle
+
+> **🎭 Role:** Senior React Engineer
+> **📍 Context:** Analysts may want to compare SHAP and LIME explanations for the same prediction. The toggle dispatches the LIME request and switches the chart without remounting the XAIPanel.
+> **🔧 Task:** Extend `XAIPanel` with shadcn/ui `Tabs` with values `["shap", "lime"]`. On tab switch to LIME: check if LIME explanation already exists; if not, dispatch `POST /v1/explanations/request {method: "LIME"}`; start polling `useExplanation` for the LIME task ID; show `"Generating LIME explanation... {elapsed}s"` using a counting timer; switch chart to LIME data on complete. Display computation times side-by-side: `SHAP: {ms}ms | LIME: {ms}ms`. Persist selected method in `usePreferencesStore(state => state.explanationMethod)` (Zustand + `immer`, persisted to `localStorage` via `zustand/middleware/persist`).
+> **📦 Stack:** shadcn/ui Tabs, @tanstack/react-query v5, Zustand v4 + immer + persist
+> **✅ Outcome:** Switching to LIME dispatches the request and shows elapsed time. Returning to the panel later opens on the previously selected method.
 
 #### Subphase 56.3 — MetricsDashboard Component
-> **Prompt:** Implement the MetricsDashboard component for the XAI-Guard security dashboard. The component fetches current model performance metrics from the API and displays: F1 macro and ROC-AUC as Recharts RadialBarChart gauges; precision and recall as large numeric stat cards; an AreaChart showing alerts per hour for the last 24 hours; and a PieChart showing attack type distribution for the last 24 hours. Refresh all metrics every 30 seconds using SWR polling.
 
-#### Subphase 56.4 — Model Status Bar Component
-> **Prompt:** Implement the ModelStatusBar component for the XAI-Guard security dashboard. This is a fixed strip at the top of every dashboard page showing: Champion model name and version with a green badge; Challenger model name and version with a blue badge if registered; the current drift score as a colour-coded gauge (green below 0.05, yellow 0.05 to 0.10, red above 0.10); and the timestamp of the last Champion evaluation. The status bar polls every 60 seconds using SWR.
+> **🎭 Role:** Senior React Data Visualisation Engineer
+> **📍 Context:** The metrics dashboard gives the duty analyst a quick, always-current view of model performance. It auto-updates every 30 seconds without user interaction.
+> **🔧 Task:** Implement `apps/web/components/metrics/MetricsDashboard.tsx` as a Client Component. Uses `useMetrics()` with `refetchInterval: 30_000`. Four panels: (1) F1 Macro + ROC-AUC as Recharts `RadialBarChart` gauges — green zone ≥ 90%, yellow 80–90%, red < 80%; (2) Precision + Recall as shadcn/ui `Card` blocks with large numeric value + delta-from-yesterday badge (green if positive, red if negative); (3) Alerts per hour (last 24h) as Recharts `AreaChart` with gradient fill; (4) Attack type distribution as Recharts `PieChart` with `RADIAN` label angles and custom legend. Framer Motion `motion.div` `initial={{ opacity: 0, y: 20 }}` `animate={{ opacity: 1, y: 0 }}` on each panel.
+> **📦 Stack:** Recharts v2, Framer Motion v11, shadcn/ui Card, @tanstack/react-query v5
+> **✅ Outcome:** All four chart panels render with real data. Polling updates charts without page refresh. Delta badges show correct direction.
+
+#### Subphase 56.4 — ModelStatusBar Component
+
+> **🎭 Role:** Senior Frontend Engineer
+> **📍 Context:** The ModelStatusBar is always visible at the top of the dashboard layout, providing real-time system health at a glance so analysts are always aware of model state.
+> **🔧 Task:** Implement `packages/ui/src/components/model-status-bar.tsx` as a Client Component. Uses `useModels()` with `refetchInterval: 60_000`. Renders a fixed horizontal bar: Champion name + version badge (green); Challenger name + version badge (blue) when active; drift status — small inline SVG gauge with three arcs (NONE=slate, WARNING=yellow, CRITICAL=red) and current MMD score as text; last evaluation time using `date-fns formatDistanceToNow`. Use Framer Motion `AnimatePresence` on the Champion name text so a model promotion smoothly crossfades to the new name. Export `ModelStatusBar.Skeleton` for the loading state.
+> **📦 Stack:** Framer Motion v11 AnimatePresence, date-fns v3, @tanstack/react-query v5, packages/ui
+> **✅ Outcome:** Status bar updates every 60 seconds. A model promotion animates the Champion name to the new model. The drift gauge renders with correct colour zone.
 
 #### Subphase 56.5 — Dashboard E2E Tests
-> **Prompt:** Write Playwright end-to-end tests for the XAI-Guard security dashboard. Test the complete analyst workflow: analyst logs in, dashboard loads with ModelStatusBar visible, a simulated WebSocket alert arrives and appears in the AlertsFeed, analyst clicks the alert and ThreatDetailPanel opens, the XAI panel loads with a SHAP waterfall chart, analyst toggles to LIME and the LIME chart loads, and the MetricsDashboard shows current model performance. Run tests against the local development server with seeded data from Phase 4.
+
+> **🎭 Role:** Senior Frontend Test Engineer
+> **📍 Context:** End-to-end tests verify the complete analyst workflow from authentication through explanation display, catching integration regressions that unit tests miss.
+> **🔧 Task:** Write Playwright E2E tests in `apps/web/tests/e2e/analyst-workflow.spec.ts`. Full workflow: (1) navigate to `/login`, enter analyst credentials, assert redirect to `/`; (2) assert `ModelStatusBar` shows Champion model name text; (3) mock WebSocket to send a CRITICAL DDoS alert, assert alert appears in AlertsFeed within 2 seconds; (4) click the alert, assert ThreatDetailPanel slides in with attack type "DDoS"; (5) click "XAI Details", assert XAIPanel loads with `data-testid="shap-chart"`; (6) click LIME tab, assert `"Generating LIME explanation"` text appears; (7) click Acknowledge, assert alert row has `data-acknowledged="true"`. Run against Docker Compose with seed data.
+> **📦 Stack:** Playwright, @playwright/test
+> **✅ Outcome:** All 7 E2E steps pass. Test suite runs in under 60 seconds.
 
 ---
 
 ## Phase 57 — Admin Panel Foundation & Experiment Browser
 
-**Context:** The admin panel serves data scientists and platform engineers. It is a separate Next.js application sharing the UI component library but with different routing, access requirements, and operational focus.
+**Context:** The admin panel serves data scientists and platform engineers. Separate Next.js app, stricter access control (`role === "admin"` required), and heavy data tables for experiment management.
 
-#### Subphase 57.1 — Admin App Setup & Layout
-> **Prompt:** Set up the XAI-Guard admin panel as a separate Next.js 14 App Router application importing components from the shared packages/ui library. Configure the same dark-mode Tailwind theme as the dashboard. The admin layout sidebar has five navigation sections: Experiments, Model Comparison, Champion/Challenger, Drift Monitor, and Reports. Apply the authentication guard middleware and add an admin-only route guard that redirects analyst-role users back to the security dashboard.
+#### Subphase 57.1 — Admin App Setup & RBAC Middleware
 
-#### Subphase 57.2 — RBAC Enforcement
-> **Prompt:** Implement role-based access control enforcement in the XAI-Guard admin panel. The Next.js middleware reads the JWT role claim from the access token stored in an httpOnly cookie. If the role is analyst rather than admin, redirect all admin panel routes to the dashboard. Within admin panel pages, conditionally render destructive action buttons like Promote and Rollback only for admin-role users. Analyst-role users must never see these buttons even if they navigate directly.
+> **🎭 Role:** Senior Full-Stack Engineer
+> **📍 Context:** The admin panel is a separate Next.js 14 app in `apps/admin/`. It shares `packages/ui`, `packages/api-types`, and `packages/typescript-config` with the web app but has stricter RBAC requirements.
+> **🔧 Task:** Set up `apps/admin/` as a Next.js 14 App Router application. `apps/admin/middleware.ts`: reads JWT from cookie, checks `exp` (unauthenticated → `/login`), checks `role === "admin"` (analyst → redirect to `/dashboard` with URL param `?error=insufficient_permissions`). Configure root layout with sidebar (5 sections: Experiments, Model Comparison, Champion/Challenger, Drift Monitor, Reports). Set up TanStack Query v5 `QueryClientProvider`, Zustand v4 store, and all shared packages identically to the web app. `next.config.ts` with `experimental.typedRoutes: true`.
+> **📦 Stack:** Next.js 14 App Router + Middleware, @tanstack/react-query v5, Zustand v4, shadcn/ui
+> **✅ Outcome:** `pnpm dev --filter=admin` starts on port 3001. An analyst JWT is rejected at middleware and redirected. All shared packages import without errors.
 
-#### Subphase 57.3 — ExperimentsTable Component
-> **Prompt:** Implement the ExperimentsTable component for the XAI-Guard admin panel. The component fetches all registered MLflow experiment runs from the API and renders them in a sortable filterable table. Columns include: model name, dataset used, F1 macro, ROC-AUC, inference latency P99, training time in minutes, current status, and created date. Clicking a row opens a run detail drawer. Include filter controls for model family, dataset, and date range.
+#### Subphase 57.2 — ExperimentsTable with TanStack Table
 
-#### Subphase 57.4 — Run Detail Drawer
-> **Prompt:** Implement the run detail drawer for the XAI-Guard admin panel. The drawer slides in from the right when a run row is clicked. It displays all logged MLflow parameters as a key-value list, all metrics, the DVC data tag used, the git commit SHA, and links to the model artifact in MLflow. Include a Register as Challenger button that calls the model registration service and transitions the model to challenger status in the registry.
+> **🎭 Role:** Senior React Engineer with TanStack expertise
+> **📍 Context:** The experiments table may show thousands of MLflow runs. TanStack Table v8 with server-side pagination and TanStack Virtual enables this at any scale without UI degradation.
+> **🔧 Task:** Implement `apps/admin/components/experiments/ExperimentsTable.tsx`. Use `@tanstack/react-table` with `getCoreRowModel`, `getSortedRowModel`, `getFilteredRowModel`. Server-side sort + filter: pass sort column and direction as query params to `GET /v1/experiments`. Columns: model family (filterable, cmdk ComboBox multi-select), dataset, F1 macro (sortable), ROC-AUC (sortable), latency P99 ms (sortable), training time, status badge (`SeverityBadge` repurposed), created date. Filter state synced to URL via `nuqs useQueryStates`. `@tanstack/react-virtual` for virtualised rows. Row click opens `RunDetailDrawer`.
+> **📦 Stack:** @tanstack/react-table v8, @tanstack/react-virtual v3, nuqs, cmdk, shadcn/ui
+> **✅ Outcome:** Table handles 10,000 rows without frame drops. Sort/filter state survives browser refresh via URL.
 
-#### Subphase 57.5 — Admin Routing Structure
-> **Prompt:** Set up the complete routing structure for the XAI-Guard admin panel using Next.js 14 App Router. Define routes for experiments, model comparison, Champion/Challenger management, drift monitor, and report generator. Apply the authenticated and admin-only layout using a route group. Define loading skeleton components for data-heavy pages and error boundary components for each route segment that show a helpful message rather than a blank page.
+#### Subphase 57.3 — RunDetailDrawer & Register as Challenger
+
+> **🎭 Role:** Senior React Engineer
+> **📍 Context:** The run detail drawer gives data scientists the full context of an MLflow experiment run and allows promoting it to Challenger with a single action, directly from the experiment browser.
+> **🔧 Task:** Implement `apps/admin/components/experiments/RunDetailDrawer.tsx` as a shadcn/ui `Sheet` sliding from the right (width=`w-[600px]`). Displays: MLflow parameters as a 2-column sortable key-value table; all metrics as Recharts `LineChart` sparklines (no axes, just the trend line); DVC data version tag; git SHA (7 chars with shadcn/ui `Button` copy icon). **Register as Challenger** `Button` with variant `"default"`: `useMutation` on `POST /v1/models/register { mlflow_run_id }`, shows `Loader2` spinner during mutation, on success shows shadcn/ui `toast({ title: "Registered as Challenger" })` and invalidates the `["models"]` query cache.
+> **📦 Stack:** shadcn/ui Sheet + toast, Recharts v2, @tanstack/react-query v5 useMutation
+> **✅ Outcome:** Drawer opens within 200ms. Register as Challenger shows loading state and success toast. Query cache is invalidated so the Challenger panel updates immediately.
 
 ---
 
 ## Phase 58 — Champion/Challenger Management UI
 
-**Context:** The operational control centre for platform engineers to compare models, approve promotions, monitor drift, and export research reports.
+**Context:** The operational control centre for platform engineers: model comparison, promotion controls, drift monitoring, and research report export.
 
-#### Subphase 58.1 — ModelComparisonView Component
-> **Prompt:** Implement the ModelComparisonView component for the XAI-Guard admin panel. The component fetches the master comparison table data and renders all six models as rows with all evaluation metrics as sortable columns including F1 macro, ROC-AUC, PR-AUC, recall, precision, per-attack F1, latency P99, memory, training time, and composite deployment score. The Champion row is highlighted in green and the Challenger row in blue. The best value in each column is bolded. Include a Download CSV button.
+#### Subphase 58.1 — ModelComparisonView with Conditional Formatting
 
-#### Subphase 58.2 — ChampionChallengerPanel Component
-> **Prompt:** Implement the ChampionChallengerPanel component for the XAI-Guard admin panel. The panel shows Champion and Challenger side-by-side with key metrics: F1 macro, ROC-AUC, latency P99, peak memory, and last evaluation timestamp. Performance delta badges show whether the Challenger is ahead or behind on each metric using green for positive delta and red for negative delta. Below the comparison show the last 5 nightly evaluation results as a history table with timestamps and outcomes.
+> **🎭 Role:** Senior React Engineer
+> **📍 Context:** The master comparison table is the central deliverable of the ML research. The admin panel renders it from the API with conditional formatting that makes champions, challengers, and best/worst values immediately visible.
+> **🔧 Task:** Implement `apps/admin/components/models/ModelComparisonView.tsx`. Fetches `GET /v1/models`. Renders a shadcn/ui `Table` with all 6 model families as rows and all metrics as columns. Row highlights: Champion row — `bg-green-950/50 border-l-2 border-green-500`; Challenger row — `bg-blue-950/50 border-l-2 border-blue-500`. Column value highlights: best value in column — `font-bold text-emerald-400`; worst value — `text-red-400`. Sort by CDS descending by default. **Download CSV** button: builds CSV string from table data, creates `URL.createObjectURL(new Blob([csv], { type: "text/csv" }))`, triggers `<a download>` click. **Generate PDF** button opens `ReportGenerator`.
+> **📦 Stack:** shadcn/ui Table + Button, @tanstack/react-query v5, TypeScript
+> **✅ Outcome:** Champion and Challenger rows are visually distinct. Best metric values are bold green. CSV download works and produces a correctly formatted file.
 
-#### Subphase 58.3 — Promote Action with Confirmation
-> **Prompt:** Implement the Promote action in the XAI-Guard ChampionChallengerPanel. The Promote button is rendered only for admin-role users. Clicking opens a confirmation modal showing which model becomes Champion, which is Archived, the performance delta justifying promotion, and a required text input for the promotion reason. The modal has Confirm and Cancel buttons. On confirm it shows a progress spinner then a success state with the new Champion name, or an error state with the failure reason.
+#### Subphase 58.2 — ChampionChallengerPanel with Promotion Actions
 
-#### Subphase 58.4 — Rollback Action with Confirmation
-> **Prompt:** Implement the Rollback action in the XAI-Guard ChampionChallengerPanel for admin-role users only. The confirmation modal shows the current Champion being archived and the previous Champion being restored from history. Display a warning that the Challenger shadow evaluation data is preserved but automatic evaluation stops. Require the admin to type the word confirm before the Confirm button becomes enabled.
+> **🎭 Role:** Senior React Engineer
+> **📍 Context:** Platform engineers use this panel for the most consequential action in the system: promoting a Challenger to Champion. The UI must require explicit confirmation and a written justification to prevent accidental promotions.
+> **🔧 Task:** Implement `apps/admin/components/models/ChampionChallengerPanel.tsx`. Side-by-side cards: Champion (green border) and Challenger (blue border) with key metrics and delta badges (↑/↓ with color). **Promote to Champion** button: only renders if `userRole === "admin"` (from Zustand JWT decode store). Opens shadcn/ui `AlertDialog` with: a delta metrics table, a `Textarea` for `promotion_reason` (Zod: `z.string().min(10, "Reason must be at least 10 characters")`), Confirm `Button` disabled until reason is valid (React Hook Form v7 + Zod resolver). On confirm: `useMutation` on `POST /v1/models/promote`. **Rollback** button: same pattern, confirm input must type the word "rollback" exactly.
+> **📦 Stack:** shadcn/ui AlertDialog + Textarea, React Hook Form v7, Zod v3, @tanstack/react-query v5 useMutation, Zustand v4
+> **✅ Outcome:** Analyst role never renders Promote/Rollback buttons. Promotion requires a ≥10-char reason. Rollback requires typing "rollback". The confirm button is disabled until validation passes.
 
-#### Subphase 58.5 — DriftMonitorPanel Component
-> **Prompt:** Implement the DriftMonitorPanel component for the XAI-Guard admin panel. The panel shows a Recharts LineChart of MMD drift scores over the last 30 days with a dashed orange reference line at the WARNING threshold (0.05) and a dashed red reference line at the CRITICAL threshold (0.10). Below show the current drift status badge, timestamp of the last drift report, and whether the last report triggered an early Challenger evaluation. Include a table of the 10 most recent drift reports.
+#### Subphase 58.3 — DriftMonitorPanel
 
-#### Subphase 58.6 — ReportGenerator Component
-> **Prompt:** Implement the ReportGenerator component for the XAI-Guard admin panel with two export options. The first is a CSV export of the master model comparison table that downloads immediately as a Blob. The second is a PDF report generated using @react-pdf/renderer client-side containing: an executive summary with the key research finding, the full model comparison table, the per-attack-type heatmap as an embedded image, and the recommendations section. Show a progress bar while the PDF renders.
+> **🎭 Role:** Senior React Data Visualisation Engineer
+> **📍 Context:** The drift monitor shows 30 days of MMD scores alongside discrete drift events. Platform engineers use it to understand the model health trend and decide if manual retraining is needed.
+> **🔧 Task:** Implement `apps/admin/components/models/DriftMonitorPanel.tsx`. Fetches `GET /v1/drift/reports?days=30`. Renders: (1) Recharts `LineChart` with `mmd_score` on y-axis, date on x-axis; two `ReferenceLine` elements: `y={0.05}` yellow "WARNING", `y={0.10}` red "CRITICAL"; custom `Tooltip` showing score + threshold level + action triggered; (2) current drift status as large `SeverityBadge`; (3) TanStack Table of last 10 reports with columns: date (formatted), MMD score (2 decimal places), threshold level (`SeverityBadge`), features drifted (comma-separated chip list), action triggered (string). Default sort: date descending.
+> **📦 Stack:** Recharts v2, @tanstack/react-table v8, shadcn/ui, @tanstack/react-query v5
+> **✅ Outcome:** WARNING and CRITICAL reference lines render at correct y positions. Table sorts by date descending. Threshold level column uses SeverityBadge.
 
-#### Subphase 58.7 — Admin Panel E2E Tests
-> **Prompt:** Write Playwright end-to-end tests for the XAI-Guard admin panel. Test: admin login redirects to experiments page; ExperimentsTable loads all registered runs; clicking a run opens the detail drawer with correct metrics; ModelComparisonView renders all six models with Champion row highlighted; ChampionChallengerPanel shows the Promote button for admin role; an analyst-role user is redirected away from the admin panel; and DriftMonitorPanel renders the drift score chart with correct threshold lines.
+#### Subphase 58.4 — ReportGenerator with @react-pdf/renderer
+
+> **🎭 Role:** Senior React Engineer
+> **📍 Context:** Platform engineers and research leads export comparison data as a structured PDF report for stakeholder communication and research paper supplementary materials.
+> **🔧 Task:** Implement `apps/admin/components/reports/ReportGenerator.tsx`. Two export actions: (1) CSV — client-side, immediate download using `URL.createObjectURL`; (2) PDF — uses `@react-pdf/renderer`. Define `<XAIGuardReport>` as a `@react-pdf/renderer` `Document` with: a cover `Page` (XAI-Guard title, report date, system version); a comparison `Page` with a `@react-pdf/renderer` `View`-based table (6 rows × 12 columns); a findings summary `Page`. Generate using `pdf(<XAIGuardReport data={metrics} />).toBlob()`. Run in a Web Worker via `new Worker(new URL("./report.worker.ts", import.meta.url))` to avoid UI blocking. Show `Progress` bar during generation.
+> **📦 Stack:** @react-pdf/renderer, shadcn/ui Progress + Button
+> **✅ Outcome:** PDF generation completes in under 10 seconds without freezing the UI. Downloaded PDF contains all 6 model rows with correct metric values.
 
 ---
 
 ## Phase 59 — Automated ML Training Pipeline
 
-**Context:** Automate the complete ML lifecycle so the system continuously improves without manual intervention. Weekly scheduled runs and drift-triggered on-demand runs keep the Champion model current.
+**Context:** Automate the complete ML lifecycle: weekly scheduled retraining and drift-triggered retraining keep XAI-Guard current without manual intervention.
 
 #### Subphase 59.1 — Pipeline Orchestration Script
-> **Prompt:** Implement the XAI-Guard ML pipeline orchestration script that runs the full training workflow end-to-end. Stages execute in order: pull the latest DVC data version, run preprocessing, run feature engineering and selection, train all configured models, evaluate each model with the standard metrics harness, select the best candidate as Challenger, register all models in MLflow, and push pipeline outputs to DVC remote. Accept a models filter argument to train a subset of model families for targeted retraining.
 
-#### Subphase 59.2 — GitHub Actions Weekly Schedule
-> **Prompt:** Implement the GitHub Actions workflow for weekly automated ML training in XAI-Guard. The workflow triggers on a Sunday 02:00 UTC cron and on manual dispatch with an optional models filter input. It sets up the Python environment with uv, authenticates to the MinIO DVC remote, pulls the latest validated data version, runs the pipeline orchestration script, and sends a Slack webhook notification with the new model's key metrics. The workflow fails with a non-zero exit code if the pipeline health anomaly check triggers.
+> **🎭 Role:** MLOps Platform Engineer
+> **📍 Context:** The orchestration script is the single entry point for all ML pipeline execution. It must be idempotent (safe to run multiple times), resumable from any failed stage, and produce consistent MLflow tracking.
+> **🔧 Task:** Implement `ml/scripts/run_pipeline.py` using `typer`. CLI: `run_pipeline [--models FAMILY] [--skip-to STAGE] [--dry-run] [--run-id UUID]`. Stages in order: `download`, `validate`, `clean`, `encode`, `features`, `select`, `split`, `train_{model}`, `evaluate`, `register`. On each stage: write stage+status+timestamp to `/tmp/pipeline_progress_{run_id}.json`. On resume (`--run-id`): read progress file, skip stages with status `"complete"`. Each stage calls its script via `subprocess.run(["uv", "run", "python", ...], check=True)`. Log stage durations to MLflow. Exit code 0 on success, 1 on any stage failure.
+> **📦 Stack:** typer, subprocess (stdlib), mlflow 2.14, structlog, rich
+> **✅ Outcome:** `uv run python ml/scripts/run_pipeline.py --models xgboost --dry-run` logs all stages without executing. Resuming from a failed `train_xgboost` stage skips `download` through `split`.
 
-#### Subphase 59.3 — Drift-Triggered Retraining Task
-> **Prompt:** Implement the drift-triggered retraining Celery task for XAI-Guard. When the drift module publishes a CRITICAL drift event this task runs the pipeline orchestration script for the Champion model family only to reduce retraining time. After completion the task automatically triggers the Challenger evaluation task from Phase 51. Log the triggering drift score and resulting model metrics to a pipeline_runs database table.
+#### Subphase 59.2 — GitHub Actions Cron & Drift-Triggered Retraining
 
-#### Subphase 59.4 — Pipeline Health Anomaly Detection
-> **Prompt:** Implement pipeline health anomaly detection for the XAI-Guard training pipeline. After each run compare the new model's F1 macro against the previous successful run's F1 for the same model family. If the drop exceeds 5 percentage points, mark the run as anomalous, skip model registration to prevent a degraded model entering the registry, and send a high-priority webhook alert with the F1 delta, data version used, and a link to the MLflow run.
+> **🎭 Role:** DevOps Engineer and MLOps Specialist
+> **📍 Context:** Two automation paths trigger ML training: weekly scheduled cron (preventive maintenance) and drift-triggered retraining (reactive response to distribution shift).
+> **🔧 Task:** Write `.github/workflows/ml-pipeline-weekly.yml`. Trigger: `schedule: [{cron: "0 2 * * 0"}]`. Steps: `actions/checkout`; `astral-sh/setup-uv`; configure DVC remote with AWS secrets (`DVC_ACCESS_KEY_ID`, `DVC_SECRET_ACCESS_KEY`); `uv run dvc pull`; `uv run python ml/scripts/run_pipeline.py --models all`; send Slack webhook with F1 metrics; on failure, create GitHub Issue via `actions/github-script`. Implement `services/api/models/tasks.py` `retrain_on_drift` Celery task: subscribes to `xaiguard:retraining` Redis channel, on `drift:critical:*` message calls `subprocess.Popen(["uv", "run", "python", "ml/scripts/run_pipeline.py", "--models", model_family])` with stdout/stderr streamed to structlog.
+> **📦 Stack:** GitHub Actions, Celery 5.x, subprocess, structlog
+> **✅ Outcome:** The weekly workflow appears in GitHub Actions with the correct cron schedule. The drift-triggered task only retrains the Champion model family.
 
-#### Subphase 59.5 — Pipeline Integration Test
-> **Prompt:** Implement a pipeline integration test for XAI-Guard. The test runs the full orchestration script on a 500-sample synthetic dataset that exercises every stage. Verify: the pipeline completes without error, a new model version appears in the MLflow Model Registry, DVC push records a new pipeline output version, the pipeline health check passes on the synthetic dataset, and execution completes under 5 minutes. Run this test in CI on every pull request modifying the ML module.
+#### Subphase 59.3 — Pipeline Health Gate
+
+> **🎭 Role:** MLOps Quality Engineer
+> **📍 Context:** A health gate prevents degraded models from entering the registry. Any training run that produces a significant F1 regression is blocked automatically, preventing silent performance degradation.
+> **🔧 Task:** Implement `ml/src/pipeline/health_gate.py`. `PipelineHealthGate(f1_regression_threshold: float = 0.05, p99_latency_budget_ms: float = 100.0)`. `check(new_metrics: ThreePillarMetrics, previous_run_id: str) -> HealthGateResult`: fetch previous F1 from MLflow using `mlflow.get_run(previous_run_id).data.metrics["f1_macro"]`; compute delta; if `delta < -threshold`: `HealthGateResult(passed=False, reason=f"F1 regression: {delta:.3f}", block_registration=True)`; if `new_metrics.latency_p99_ms > p99_latency_budget_ms`: `HealthGateResult(passed=False, reason=f"P99 latency {new_metrics.latency_p99_ms:.0f}ms exceeds {p99_latency_budget_ms:.0f}ms budget", block_registration=True)`; else `HealthGateResult(passed=True)`. On block: send Slack webhook alert. The orchestration script calls this gate after `evaluate` and before `register`.
+> **📦 Stack:** mlflow 2.14, httpx, pydantic v2, structlog
+> **✅ Outcome:** Simulated F1 drop of 0.06 triggers `block_registration=True` and fires the Slack alert. The `register` stage is skipped. A P99 regression of 120ms also triggers the gate.
 
 ---
 
 ## Phase 60 — Observability, Security Hardening & Testing
 
-**Context:** Three quality pillars implemented together. Observability reveals security incidents. Security controls create testable behaviour. Coverage requirements enforce quality discipline.
+**Context:** Three quality pillars that make XAI-Guard production-safe: pre-configured Grafana dashboards, OpenTelemetry traces, and enforced security gates.
 
-#### Subphase 60.1 — Grafana Operational Dashboard
-> **Prompt:** Implement the Grafana main operational dashboard configuration for XAI-Guard as a JSON provisioning file. Define panels for: requests per second, P99 prediction latency, prediction distribution by attack type as a pie chart, confidence score distribution as a histogram, current drift score per model as gauges, Champion model version as an info panel, Celery queue depth by queue name, and active alert counts by severity as stat panels.
+#### Subphase 60.1 — Grafana Dashboard Configuration
 
-#### Subphase 60.2 — Grafana Model Performance Dashboard
-> **Prompt:** Implement the Grafana model performance dashboard for XAI-Guard using the PostgreSQL datasource to query the model_evaluations table directly. Define panels showing F1 macro and ROC-AUC per model over time as line charts with one line per model family. Add a heatmap panel showing per-attack-type F1 distribution refreshed after each Champion/Challenger evaluation. This is the primary operational view for monitoring model quality over time.
+> **🎭 Role:** Site Reliability Engineer with Grafana expertise
+> **📍 Context:** Grafana dashboards are provisioned from JSON files committed to the repository. No manual dashboard creation is required after deployment — infrastructure as code applies to observability too.
+> **🔧 Task:** Write Grafana provisioning in `infra/grafana/`. `provisioning/datasources/prometheus.yml` and `provisioning/datasources/postgres.yml`. `provisioning/dashboards/main.yml` with `path: /etc/grafana/dashboards`. Dashboard JSON in `dashboards/operational.json`: panels for requests/sec (rate PromQL), prediction P99 latency (histogram_quantile PromQL), confidence score distribution (heatmap), Celery queue depth, active WebSocket connections. Dashboard JSON in `dashboards/model-performance.json`: panels querying `model_evaluations` PostgreSQL table for F1 trend over time, promotion history timeline. Configure `docker-compose.yml` to mount both directories.
+> **📦 Stack:** Grafana 10, Prometheus 2.x, PostgreSQL datasource
+> **✅ Outcome:** `docker compose up grafana` shows both dashboards pre-populated from seed data without any manual configuration.
 
-#### Subphase 60.3 — Grafana Alerting Rules
-> **Prompt:** Configure Grafana alerting rules for XAI-Guard. Page immediately when: P99 latency exceeds 200 milliseconds sustained for 5 minutes; drift score exceeds the CRITICAL threshold; error rate exceeds 1 percent. Create warning tickets when: P99 latency exceeds 150 milliseconds; drift score exceeds the WARNING threshold; mean confidence drops more than 10 percent relative to the 7-day average; Celery queue depth exceeds 10,000. Route pages to PagerDuty and tickets to Slack.
+#### Subphase 60.2 — OpenTelemetry Instrumentation & Grafana Alerting
 
-#### Subphase 60.4 — OpenTelemetry Tracing
-> **Prompt:** Configure OpenTelemetry distributed tracing for XAI-Guard. Instrument the FastAPI application, SQLAlchemy queries, Redis operations, and Celery tasks with OpenTelemetry spans. Configure the OTLP exporter to send traces to Jaeger. A complete prediction trace should display spans for: the HTTP handler, feature pipeline computation, model inference, async database write, and Celery task dispatch, enabling full per-stage latency visibility.
+> **🎭 Role:** Observability Platform Engineer
+> **📍 Context:** Distributed traces show the full latency breakdown of individual requests across FastAPI, SQLAlchemy, Redis, and Celery — enabling precise identification of bottlenecks.
+> **🔧 Task:** Configure OpenTelemetry in `services/api/core/telemetry.py`. Set up `TracerProvider` with `OTLPSpanExporter(endpoint="http://jaeger:4317")`. Instrument: `FastAPIInstrumentor().instrument_app(app)`, `SQLAlchemyInstrumentor().instrument(engine=engine)`, `RedisInstrumentor().instrument()`, `CeleryInstrumentor().instrument()`. Add `X-Trace-ID` response header from `trace.get_current_span().get_span_context().trace_id`. Write Grafana alert rules in `infra/grafana/alerts/rules.json`: alert if `histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.2` for 5 min (P99 > 200ms); alert if `mmd_score > 0.10` (CRITICAL drift); alert if `rate(http_requests_total{status=~"5.."}[5m]) > 0.01` (error rate > 1%).
+> **📦 Stack:** opentelemetry-sdk, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-sqlalchemy, opentelemetry-instrumentation-redis, opentelemetry-instrumentation-celery, Jaeger
+> **✅ Outcome:** A prediction request shows a distributed trace in Jaeger with spans for FastAPI, SQLAlchemy, and Redis. All three Grafana alerts fire in a controlled test injection.
 
-#### Subphase 60.5 — Rate Limiting Implementation
-> **Prompt:** Implement rate limiting for the XAI-Guard API using slowapi. Apply per-IP rate limits: prediction endpoint at 100 requests per minute, explanation request at 10 requests per minute, event ingestion at 50 requests per minute, and auth login at 10 requests per minute to prevent credential stuffing. When the rate limit is exceeded return HTTP 429 with a Retry-After header and log the violation to the structured logging system.
+#### Subphase 60.3 — Security Hardening & Coverage Enforcement
 
-#### Subphase 60.6 — Security Hardening
-> **Prompt:** Apply security hardening to the XAI-Guard API. Run Bandit SAST and fix all HIGH and MEDIUM severity findings. Run OWASP ZAP baseline scan against the local Docker stack and fix all MEDIUM and above alerts. Verify all Pydantic input schemas have extra set to forbid. Confirm CORS configuration uses no wildcard origins. Verify all database queries use SQLAlchemy ORM with parameterised binding only. Document each finding and its fix in a security remediation log.
+> **🎭 Role:** Application Security Engineer and QA Lead
+> **📍 Context:** Security hardening and test coverage gates are enforced together in CI so neither can slip through a PR review. Both requirements must pass for the merge to proceed.
+> **🔧 Task:** Security: run `bandit -r services/api/ ml/ -ll -x tests/` and fix all HIGH/MEDIUM findings; run `detect-secrets scan --update .secrets.baseline`; add `SECURITY.md` with responsible disclosure policy; configure `slowapi` rate limits in `services/api/core/middleware.py`: `/v1/predictions/predict` 100/min, `/v1/explanations/request` 10/min, `/v1/events/ingest` 50/min. Coverage: configure `pyproject.toml` `[tool.coverage.run] branch = true` + `[tool.coverage.report] fail_under = 80`. Write `scripts/security-check.sh` that runs Bandit and detect-secrets and exits 1 if any HIGH issues found.
+> **📦 Stack:** bandit, detect-secrets, slowapi, coverage[toml]
+> **✅ Outcome:** `bash scripts/security-check.sh` exits 0. `coverage report` shows ≥80% for all API modules. Rate limit returns 429 with `Retry-After` header after threshold.
 
-#### Subphase 60.7 — Test Coverage & Load Testing
-> **Prompt:** Configure test coverage requirements and run a load testing baseline for XAI-Guard. Set the minimum coverage threshold to 80 percent for API and ML modules via pytest-cov with a CI failing gate. Then run a Locust load test ramping to 500 concurrent users over 5 minutes with tasks for event ingestion, predictions, alert polling, and WebSocket connections. Sustain for 10 minutes and record P50, P95, P99 latency, failure rate, and peak RPS. Document results as the performance baseline.
+#### Subphase 60.4 — Load Testing Baseline
+
+> **🎭 Role:** Performance Engineer
+> **📍 Context:** The load test baseline establishes the performance contract. All future optimisations must maintain or improve these numbers, verified by re-running the load test in staging.
+> **🔧 Task:** Write `tests/load/locustfile.py`. Three `HttpUser` task classes: `EventIngestionUser(weight=10)` — `POST /v1/events/ingest` with 100-event batches; `PredictionUser(weight=70)` — `POST /v1/predictions/predict` with single events; `AlertPollingUser(weight=20)` — `GET /v1/alerts?severity=CRITICAL`. Target: ramp to 500 concurrent users over 5 minutes, sustain 10 minutes. Implement `--check-targets` custom argument: if set, the `test_stop` hook asserts `p99_predict < 150ms` and `failure_rate < 0.5%`, exiting 1 on failure. Document results in `docs/performance-baseline.md` after first run.
+> **📦 Stack:** locust 2.x
+> **✅ Outcome:** The baseline is documented. `--check-targets` enforces the latency SLO in staging CI.
 
 ---
 
 ## Phase 61 — CI/CD Pipeline
 
-**Context:** Automated quality gates ensure no code reaches production without passing lint, type checking, tests, security scanning, and build verification.
+**Context:** Automated quality gates from every pull request to production deployment. Fast feedback, parallel jobs, and enforced manual approval for production.
 
-#### Subphase 61.1 — CI Quality & Test Workflow
-> **Prompt:** Implement the XAI-Guard CI GitHub Actions workflow that runs on every pull request with parallel jobs: a quality job running ESLint, Prettier check, ruff, mypy, and commitlint; a test job running all unit and integration tests with coverage reporting failing if below 80 percent; a build job building all Docker images to verify compilation; a security job running Bandit and detect-secrets; and a container scanning job running trivy failing on any CRITICAL CVE findings.
+#### Subphase 61.1 — CI Workflow
 
-#### Subphase 61.2 — CD Staging Workflow
-> **Prompt:** Implement the XAI-Guard CD staging GitHub Actions workflow triggering automatically on every push to main. The workflow builds all Docker images tagged with the git SHA, pushes to the container registry, applies the staging Kubernetes Kustomize overlay, waits for the rollout using kubectl rollout status, runs the smoke test suite against staging, and sends a Slack notification. A failed deployment automatically redeploys the previous image tag to restore staging.
+> **🎭 Role:** Senior DevOps Engineer and CI/CD Specialist
+> **📍 Context:** Every pull request must pass all quality gates before merging. Parallel jobs (quality, test-api, test-ml, test-e2e, security) minimise total CI duration while maintaining comprehensive coverage.
+> **🔧 Task:** Write `.github/workflows/ci.yml`. Trigger: `on: pull_request: branches: [main]`. Parallel jobs (using `needs` only where sequential): (1) `quality` — `pnpm lint`, `pnpm typecheck`, `uv run ruff check ml/ services/`, `uv run mypy services/api/ ml/`, `uv run bandit -r services/ ml/ -ll -x tests/`, commitlint; (2) `test-api` — Docker Compose up (postgres, redis), `uv run pytest services/api/ --cov=services/api --cov-fail-under=80 --cov-report=xml`, upload to Codecov; (3) `test-ml` — run ML pipeline integration tests on 100-row fixture data; (4) `test-e2e` — build images, `docker compose up --wait`, `pnpm exec playwright test`; (5) `security` — Trivy scan Docker images built in `test-e2e`, `trivy image --exit-code 1 --severity CRITICAL`.
+> **📦 Stack:** GitHub Actions, Docker Compose, pytest-asyncio, Playwright, trivy
+> **✅ Outcome:** All 5 CI jobs appear in GitHub's PR check list. Failed coverage gate blocks the merge. Trivy blocks on CRITICAL CVEs.
 
-#### Subphase 61.3 — CD Production Workflow
-> **Prompt:** Implement the XAI-Guard CD production GitHub Actions workflow that is manually triggered only. It accepts a specific Docker image tag as input validated in staging, requires approval from a designated reviewer via a GitHub environment protection rule, applies the production Kustomize overlay, waits for the rollout, runs the production smoke test suite, and sends a Slack notification. All production deployment events are logged to an audit trail.
+#### Subphase 61.2 — Multi-Stage Docker Builds & CD Workflows
 
-#### Subphase 61.4 — Multi-Stage Docker Builds
-> **Prompt:** Implement multi-stage Docker builds for all XAI-Guard services. The API Dockerfile uses a builder stage for installing Python dependencies with uv sync and a minimal python:3.11-slim runtime stage copying only the virtual environment and application code targeting under 500 MB. The Next.js Dockerfiles use standalone output mode with a node:20-alpine runtime stage targeting under 200 MB. Use build ARGs for configuration values that differ between environments.
-
-#### Subphase 61.5 — ML Pipeline CI Workflow
-> **Prompt:** Implement the XAI-Guard ML pipeline CI workflow running on every pull request that modifies the ML module. The workflow sets up the Python environment, pulls the DVC synthetic test data version, runs the full pipeline orchestration script on that data, and verifies the output models are registered in the MLflow test instance. This prevents ML pipeline regressions from reaching main without being caught by CI.
-
-#### Subphase 61.6 — Branch Protection & Dependabot
-> **Prompt:** Configure GitHub branch protection rules and Dependabot for XAI-Guard. Require all CI jobs to pass before merging to main and require at least one code review approval. Block direct pushes to main. Configure Dependabot to check npm, pip, and GitHub Actions dependency updates weekly and open automated pull requests for patch and minor updates. Configure Dependabot auto-merge for patch updates that pass all CI checks to reduce maintenance burden.
+> **🎭 Role:** Senior DevOps Engineer
+> **📍 Context:** Multi-stage builds minimise image sizes and attack surface. Staging deployments are automatic; production requires a named reviewer's approval in a GitHub Environment.
+> **🔧 Task:** Write multi-stage Dockerfiles. `services/api/Dockerfile`: stage 1 `python:3.11-slim` + uv install deps; stage 2 `python:3.11-slim` runtime, copy venv and source only, `CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]`. `apps/web/Dockerfile`: stage 1 node build with `pnpm build`; stage 2 Node 20 slim with Next.js `standalone` output only. Target sizes: API < 500MB, web/admin < 200MB. `.github/workflows/cd-staging.yml`: trigger `push: branches: [main]`; build+push to ECR with git SHA tag; `kubectl apply -k infra/kubernetes/overlays/staging/`; wait for rollout with `kubectl rollout status`; run smoke tests. `.github/workflows/cd-production.yml`: trigger `workflow_dispatch: inputs: {image_tag: string}`; requires `production` GitHub Environment with 2 required reviewers; apply production overlay.
+> **📦 Stack:** Docker multi-stage, GitHub Actions Environments, kubectl kustomize, AWS ECR
+> **✅ Outcome:** API Docker image is under 500MB. Web image is under 200MB. Production deployment requires 2 reviewer approvals.
 
 ---
 
 ## Phase 62 — Kubernetes & Infrastructure as Code
 
-**Context:** Deploy XAI-Guard to Kubernetes for production-grade orchestration. Define all cloud infrastructure as Terraform so the complete platform can be rebuilt from git in under 2 hours.
+**Context:** Production-grade Kubernetes with HPA, PDB, and Terraform-managed cloud infrastructure in AWS. All infrastructure is code — no manual cloud console operations.
 
-#### Subphase 62.1 — Base Kubernetes Manifests
-> **Prompt:** Write the base Kubernetes manifests for XAI-Guard. Define Deployments for the FastAPI API, Celery workers, Next.js dashboard, and admin panel. Define StatefulSets for Redis and PostgreSQL each with a persistent volume claim. Define a Deployment for the MLflow Tracking Server. Configure resource requests and limits for every workload. Add liveness and readiness probes to every service using the /v1/health endpoint or service-specific health checks.
+#### Subphase 62.1 — Kubernetes Manifests & Kustomize Overlays
 
-#### Subphase 62.2 — Kustomize Overlays
-> **Prompt:** Implement Kustomize overlays for XAI-Guard staging and production environments. The staging overlay patches replica counts to one per deployment, uses smaller resource limits, and patches the image tag with the CI-built SHA. The production overlay sets minimum two replicas for API and Celery worker, uses production resource limits, and locks the image tag to the approved version. Both overlays reference the base manifests using kustomization.yaml with strategic merge patches.
+> **🎭 Role:** Senior Platform Engineer and Kubernetes Expert
+> **📍 Context:** All Kubernetes resources are base manifests with Kustomize overlays for staging and production. This single-source-of-truth approach prevents configuration drift between environments.
+> **🔧 Task:** Write base manifests in `infra/kubernetes/base/`. `deployment-api.yaml`: 2 replicas, `resources.requests: {cpu: 500m, memory: 512Mi}`, `limits: {cpu: 2, memory: 2Gi}`, liveness `GET /v1/health` (30s delay, 10s period, 3 failures), readiness `GET /v1/health/ready` (10s delay, 5s period). `deployment-celery.yaml`: 2 replicas. `deployment-web.yaml` and `deployment-admin.yaml`. `hpa-api.yaml`: CPU 70%, min 2 max 10. `hpa-celery.yaml`: custom metric `celery_queue_length`, min 2 max 8 via KEDA. `pdb-api.yaml` and `pdb-celery.yaml`: `minAvailable: 1`. Overlays: `staging/kustomization.yaml` patches replicas to 1, reduces resource limits by 50%; `production/kustomization.yaml` uses base as-is.
+> **📦 Stack:** Kubernetes 1.29+, Kustomize 5.x, KEDA (for queue-based HPA)
+> **✅ Outcome:** `kubectl apply -k infra/kubernetes/overlays/staging --dry-run=client` succeeds. Staging patches reduce API replicas to 1.
 
-#### Subphase 62.3 — Horizontal Pod Autoscaler & PodDisruptionBudget
-> **Prompt:** Configure Horizontal Pod Autoscaler and PodDisruptionBudget for the XAI-Guard API and Celery worker. The API HPA scales between 2 and 10 replicas based on 70 percent CPU utilisation. The Celery worker HPA scales between 2 and 8 replicas based on the custom queue depth metric exposed via the Prometheus Adapter. Configure PodDisruptionBudget for both deployments with minAvailable of 1 to ensure at least one pod remains available during node drains and rolling updates.
+#### Subphase 62.2 — Terraform Infrastructure Modules
 
-#### Subphase 62.4 — TLS, Ingress & cert-manager
-> **Prompt:** Configure TLS and ingress for XAI-Guard Kubernetes deployment. Install cert-manager and create a ClusterIssuer using Let's Encrypt ACME for automated certificate provisioning and renewal. Define an nginx-ingress Ingress resource routing requests to the API, dashboard, and admin panel by path prefix. Annotate the Ingress so cert-manager automatically manages the TLS certificate. Configure nginx to redirect all HTTP traffic to HTTPS.
-
-#### Subphase 62.5 — Terraform Infrastructure Modules
-> **Prompt:** Write reusable Terraform modules for the XAI-Guard cloud infrastructure on AWS. Create modules for: VPC with public and private subnets and NAT gateway; EKS cluster with a managed node group supporting on-demand and spot instances; RDS PostgreSQL 16 with Multi-AZ and 7-day automated backup retention; ElastiCache Redis 7 accessible only within the VPC; S3 bucket for DVC and MLflow artifacts with versioning and server-side encryption; and ECR repositories for each service image with lifecycle policies for old image cleanup.
-
-#### Subphase 62.6 — Terraform Environments & IRSA
-> **Prompt:** Implement Terraform environment compositions for XAI-Guard staging and production. Staging uses t3.medium EKS nodes and db.t3.medium RDS in a single AZ to minimise cost. Production uses m5.large EKS nodes and db.r6g.large RDS with Multi-AZ. Configure IRSA granting the API pod read access to the S3 artifacts bucket and the Celery worker pod read and write access. Follow least privilege with no wildcard IAM actions anywhere in the configuration.
+> **🎭 Role:** Senior Infrastructure Engineer with AWS Terraform expertise
+> **📍 Context:** Six Terraform modules provision the complete AWS infrastructure. IRSA bindings ensure pods access only the S3 resources they need — no wildcard IAM permissions.
+> **🔧 Task:** Write Terraform modules in `infra/terraform/modules/`. `vpc`: VPC with 3 public + 3 private subnets across 3 AZs, NAT Gateway, security groups (API port 8000, Redis 6379, PostgreSQL 5432). `eks`: managed node group with mixed instance policy `[m5.large, m5a.large]`, on-demand base 2 + spot. `rds`: PostgreSQL 16, Multi-AZ, 7-day backup retention, `storage_encrypted=true`, parameter group `log_statement=ddl`. `elasticache`: Redis 7 cluster mode disabled, `at_rest_encryption_enabled=true`, `transit_encryption_enabled=true`. `s3`: versioned bucket, SSE-S3 encryption, `block_public_acls=true`. `ecr`: one repo per service, lifecycle policy keeping last 10 images. IRSA: API SA → `s3:GetObject` on `arn:aws:s3:::xaiguard-artifacts/*`; Celery SA → `s3:GetObject, s3:PutObject` on same.
+> **📦 Stack:** Terraform ≥1.8, AWS provider 5.x
+> **✅ Outcome:** `terraform plan` on staging shows expected creates with no drift. IRSA role policies have no `*` actions.
 
 ---
 
-## Phase 63 — Production Hardening, Research Report & Project Completion
+## Phase 63 — Production Hardening, Research Paper & Project Completion
 
-**Context:** The final phase: SLOs, disaster recovery, the research paper, acceptance testing, and the v1.0.0 release that formally completes the XAI-Guard project.
+**Context:** SLOs, disaster recovery, the peer-review-quality research paper, acceptance testing, and the v1.0.0 release that marks the project's completion.
 
-#### Subphase 63.1 — SLO Definition & Burn Rate Alerting
-> **Prompt:** Define the XAI-Guard Service Level Objectives and configure burn rate alerting. Define five SLOs: availability at 99.9 percent over a 30-day rolling window; prediction latency P99 below 100 milliseconds; error rate below 0.1 percent; alert delivery freshness below 10 seconds end-to-end from event ingestion to WebSocket delivery; and explanation latency P99 below 500 milliseconds. Implement multi-window multi-burn-rate alerting in Grafana: fast burn pages immediately for high error budget consumption, slow burn creates a warning ticket for sustained consumption.
+#### Subphase 63.1 — SLO Definition & Multi-Window Burn Rate Alerting
 
-#### Subphase 63.2 — Disaster Recovery Runbook
-> **Prompt:** Write the XAI-Guard disaster recovery runbook covering four scenarios with concrete step-by-step recovery instructions. Scenario one database failure: restore from RDS automated backup to a specific timestamp targeting RTO under 4 hours. Scenario two model registry loss: re-pull artifacts from MinIO and re-register in MLflow targeting RTO under 1 hour. Scenario three Kubernetes namespace corruption: reapply the production Kustomize overlay targeting RTO under 30 minutes. Scenario four complete cluster loss: run Terraform apply then Kubernetes manifests then DVC pull targeting RTO under 2 hours.
+> **🎭 Role:** Site Reliability Engineer
+> **📍 Context:** SLOs define the quality commitment. Multi-window burn rate alerting catches violations early: fast-burn for immediate pages, slow-burn for proactive tickets — matching Google's SRE book pattern.
+> **🔧 Task:** Define five SLOs in `docs/slos.md`: (1) availability 99.9% / 30-day; (2) prediction P99 ≤ 100ms; (3) error rate ≤ 0.1%; (4) alert delivery freshness ≤ 10 seconds from prediction to WebSocket delivery; (5) explanation P99 ≤ 500ms. Implement multi-window burn rate Grafana alert rules in `infra/grafana/alerts/slo-rules.json`: fast-burn alert (5% error budget in 1 hour → PagerDuty critical), slow-burn alert (10% in 6 hours → Slack ticket). Configure Grafana contact points: PagerDuty integration for critical pages, Slack webhook for tickets. Write error budget policy in `docs/error-budget-policy.md`: if budget < 50%, freeze new features.
+> **📦 Stack:** Grafana 10, Prometheus, PagerDuty, Slack webhooks
+> **✅ Outcome:** Five SLOs are defined and monitored. A test injection of 10× normal error rate fires the fast-burn alert within 5 minutes.
 
-#### Subphase 63.3 — Graceful Degradation
-> **Prompt:** Implement graceful degradation for the XAI-Guard API. When ML inference is unavailable or model loading fails the prediction endpoint falls back to a rule-based heuristic classifier that maps threshold conditions on key features to attack type classifications with a fixed conservative confidence score. The dashboard displays a prominent warning banner when operating in degraded mode. All degraded-mode predictions are flagged in the database so they can be excluded from model evaluation metrics.
+#### Subphase 63.2 — Disaster Recovery Runbook & Graceful Degradation
 
-#### Subphase 63.4 — Research Paper
-> **Prompt:** Write the XAI-Guard research paper structured as a formal academic paper with the following sections: Abstract of 250 words covering problem, approach, key finding, and practical implication; Introduction with research motivation and the eight sub-questions; Related Work citing all four datasets, SHAP, LIME, Attention Rollout, and relevant IDS and XAI literature; Methodology describing all six models, four datasets, and the three-pillar evaluation framework; Results presenting all quantitative findings from Phase 37 with tables and figures; Discussion answering each research sub-question with specific numbers and statistical significance values from Phase 38; and Conclusion with practical deployment recommendations.
+> **🎭 Role:** Senior Platform Reliability Engineer
+> **📍 Context:** Production outages need pre-documented recovery procedures so on-call engineers can restore service without improvising under pressure. Graceful degradation ensures analysts continue receiving alerts even when ML inference is unavailable.
+> **🔧 Task:** Write `docs/disaster-recovery-runbook.md` with exact CLI commands for 4 scenarios: (1) RDS failure — `aws rds restore-db-cluster-to-point-in-time` targeting RTO=4h; (2) MLflow registry loss — `aws s3 cp s3://... ml/artifacts/ --recursive` + re-register commands, RTO=1h; (3) Kubernetes namespace corruption — `kubectl apply -k infra/kubernetes/overlays/production/`, RTO=30min; (4) full cluster loss — `terraform apply` + `kubectl apply -k` + `dvc pull`, RTO=2h. Implement graceful degradation in `services/api/predictions/router.py`: catch `ModelNotLoadedError`, call `HeuristicFallbackClassifier.predict(event)` from `services/api/predictions/fallback.py` (rule-based: port scan if unique_dst_ports > 50, DDoS if packet_rate > 10000, else Normal), add `X-Degraded-Mode: true` response header.
+> **📦 Stack:** AWS CLI, kubectl, Terraform, FastAPI
+> **✅ Outcome:** The runbook provides copy-paste CLI commands for every scenario. `X-Degraded-Mode: true` is set when the model is unavailable.
 
-#### Subphase 63.5 — Reproducibility Guide
-> **Prompt:** Write the XAI-Guard reproducibility guide enabling anyone to reproduce every research paper result from only the git repository tag and DVC remote access. Provide step-by-step commands: clone the repository at the v1.0.0 tag, install all dependencies using uv sync and pnpm install, pull the exact DVC data version, run the full ML pipeline using the orchestration script, and view results in the MLflow UI cross-referenced with the paper's reported numbers. Document the hardware used for original experiments, all random seeds, and expected result variance across runs.
+#### Subphase 63.3 — Research Paper
 
-#### Subphase 63.6 — End-to-End Acceptance Test
-> **Prompt:** Run the XAI-Guard end-to-end acceptance test to formally verify the production system. Replay 10,000 real CICIDS-2017 events at 500 events per second using the event replay script. Verify: all CRITICAL and HIGH alerts appear in the analyst dashboard within 10 seconds; the attack type classification F1 on the replayed events is at or above the reported paper value; clicking an alert shows the Threat Detection card with a loaded SHAP explanation; Prometheus metrics update correctly; and Grafana dashboards show live data. Document all results in an acceptance test report.
+> **🎭 Role:** Principal Research Scientist and Lead Author
+> **📍 Context:** The research paper is the primary academic output of the XAI-Guard project. It must be complete enough for submission to a workshop at IEEE S&P, USENIX Security, or a top ML venue.
+> **🔧 Task:** Write the XAI-Guard research paper in `docs/research-paper.md`. Sections: **Abstract** (250 words — problem, approach, key findings, implications); **1. Introduction** (problem motivation, 8 RQs, 4 contributions); **2. Related Work** (NSL-KDD/CICIDS-2017/UNSW-NB15/BETH benchmarks, SHAP/LIME/Attention Rollout XAI methods, prior IDS deep learning works); **3. Methodology** (all 6 model architectures, 4 datasets, 3-pillar framework, Champion/Challenger policy with formal gates); **4. Results** (master comparison table as Table 1, per-attack F1 heatmap as Figure 1, SHAP global summary as Figure 2, statistical significance matrix); **5. Discussion** (answer each of the 8 RQs with specific numerical results and p-values from the MLflow experiments); **6. Limitations** (threats to validity with mitigations: concept drift, CICIDS-2017 label noise, lack of live traffic evaluation); **7. Conclusion & Future Work** (7 future directions from the roadmap).
+> **📦 Stack:** Markdown (LaTeX-compatible for paper export)
+> **✅ Outcome:** The paper draft is complete. All quantitative claims reference specific MLflow run IDs. The paper can be formatted for submission with pandoc.
 
-#### Subphase 63.7 — Future Roadmap & v1.0.0 Release
-> **Prompt:** Write the XAI-Guard future roadmap and prepare the v1.0.0 release. The roadmap prioritises seven future research directions: LLM-based natural language explanation generation from SHAP values; online learning for incremental model updates without full retraining; federated learning for cross-organisation training without sharing raw event data; Graph Neural Network model for lateral movement and multi-hop attack detection; multi-modal detection combining network flows with system call sequences; an active learning loop where analyst feedback continuously improves the model; and Kafka streaming for high-throughput ingestion above 100,000 events per second. Tag the repository as v1.0.0 and write a CHANGELOG listing all 63 phases.
+#### Subphase 63.4 — End-to-End Acceptance Test & v1.0.0 Release
+
+> **🎭 Role:** QA Lead, Release Manager, and Project Completion Authority
+> **📍 Context:** The acceptance test formally certifies the production system before the v1.0.0 tag. The release bundles all research artifacts, documentation, and code in a stable, reproducible state.
+> **🔧 Task:** Write `tests/acceptance/test_production.py`. Replay 10,000 CICIDS-2017 events at 500 events/sec using `httpx.AsyncClient` with `asyncio.gather(*(predict(event) for event in events))`. Assert: (1) all CRITICAL+HIGH alerts appear in the WebSocket stream within 10 seconds; (2) classification F1 on replayed events is within ±0.01 of the reported research paper value; (3) `xaiguard_predictions_total` Prometheus counter incremented by 10,000; (4) Grafana API shows both dashboards as healthy; (5) XAIPanel loads for a sampled alert. On success: `git tag -a v1.0.0 -m "XAI-Guard v1.0.0 — Production Release"`, write `CHANGELOG.md` with one-line summaries for all 63 phases, write `docs/future-roadmap.md` with 7 research directions: (a) LLM-based natural language XAI summaries, (b) online learning without full retraining, (c) federated learning for multi-organisation threat sharing, (d) Graph Neural Network for lateral movement detection, (e) multi-modal detection combining logs + NetFlow + endpoint telemetry, (f) active learning loop for analyst feedback, (g) Kafka streaming for 100k+ events/sec.
+> **📦 Stack:** httpx, asyncio, prometheus_client (query API), Playwright (Grafana check), git
+> **✅ Outcome:** All 5 acceptance assertions pass. The `v1.0.0` git tag exists and is pushed. `CHANGELOG.md` covers all 63 phases.
 
 ---
 
@@ -202,70 +274,16 @@
 
 | # | Phase | Doc |
 |---|-------|-----|
-| 1 | Research Statement & Evaluation Framework | 01 |
-| 2 | Project Charter & Scope | 01 |
-| 3 | Monorepo & Developer Environment | 01 |
-| 4 | Infrastructure Services Setup | 01 |
-| 5 | Database Schema & ORM Layer | 01 |
-| 6 | Modular Monolith Architecture Design | 01 |
-| 7 | API Contract & Schema Strategy | 01 |
-| 8 | Frontend Application Architecture | 01 |
-| 9 | Dataset Strategy & Acquisition | 02 |
-| 10 | NSL-KDD EDA | 02 |
-| 11 | CICIDS-2017 EDA | 02 |
-| 12 | UNSW-NB15 EDA | 02 |
-| 13 | BETH EDA | 02 |
-| 14 | Cross-Dataset Schema Mapping | 02 |
-| 15 | Data Cleaning Pipeline | 02 |
-| 16 | Encoding & Scaling Pipeline | 02 |
-| 17 | Class Imbalance Handling | 02 |
-| 18 | Network Feature Engineering | 03 |
-| 19 | Temporal Feature Engineering | 03 |
-| 20 | Behavioral Feature Engineering | 03 |
-| 21 | Threat Intel Feature Stubs | 03 |
-| 22 | Feature Selection & Validation | 03 |
-| 23 | Sequence Data Construction | 03 |
-| 24 | DVC Pipeline Setup | 03 |
-| 25 | MLflow Experiment Tracking | 03 |
-| 26 | Common Model Interface Design | 04 |
-| 27 | Logistic Regression Baseline | 04 |
-| 28 | Random Forest Model | 04 |
-| 29 | XGBoost Model & Champion Registration | 04 |
-| 30 | LSTM Architecture | 04 |
-| 31 | LSTM Training & Optimisation | 04 |
-| 32 | LSTM Evaluation | 04 |
-| 33 | Transformer Encoder Architecture | 05 |
-| 34 | Transformer Encoder Training | 05 |
-| 35 | Lightweight Transformer & Knowledge Distillation | 05 |
-| 36 | Quantisation & Deployment Profiling | 05 |
-| 37 | Cross-Model Comparative Analysis | 05 |
-| 38 | Statistical Significance Testing | 05 |
-| 39 | SHAP Explainability Implementation | 05 |
-| 40 | LIME Explainability | 06 |
-| 41 | Attention Explainability | 06 |
-| 42 | XAI Stability & Cross-Method Agreement | 06 |
-| 43 | Human-Centred XAI Evaluation | 06 |
-| 44 | Robustness Testing | 06 |
-| 45 | Drift Detection System | 06 |
-| 46 | Modular Monolith Core Layer | 06 |
-| 47 | Auth Module | 06 |
-| 48 | Events Module | 07 |
-| 49 | Predictions Module | 07 |
-| 50 | Explanations Module | 07 |
-| 51 | Model Registry Module | 07 |
-| 52 | Alerts & WebSocket Module | 07 |
-| 53 | Threat Intelligence Module | 07 |
-| 54 | Dashboard Foundation & Layout | 07 |
-| 55 | Alert Feed & Threat Detail Components | 07 |
-| 56 | XAI Panel & Metrics Dashboard | 08 |
-| 57 | Admin Panel Foundation & Experiment Browser | 08 |
-| 58 | Champion/Challenger Management UI | 08 |
-| 59 | Automated ML Training Pipeline | 08 |
-| 60 | Observability, Security Hardening & Testing | 08 |
-| 61 | CI/CD Pipeline | 08 |
-| 62 | Kubernetes & Infrastructure as Code | 08 |
-| 63 | Production Hardening, Research Report & Launch | 08 |
+| 1–8 | Project Foundation | 01 |
+| 9–17 | Data Engineering | 02 |
+| 18–25 | Feature Engineering & Experiment Tracking | 03 |
+| 26–32 | Classical ML & Sequence Models | 04 |
+| 33–39 | Transformer & XAI Evaluation | 05 |
+| 40–47 | LIME, XAI Evaluation & Backend Core | 06 |
+| 48–55 | Backend Domain Modules & Dashboard | 07 |
+| 56–63 | Admin Panel, MLOps & Production | 08 |
 
 **Previous ←** [07 — Backend Domain Modules & Dashboard](07-mlops-security-testing-and-performance.md)
 
-*End of XAI-Guard implementation guide. 63 phases. 350+ prompt-driven subphases. Modular monolith API. Production-grade.*
+---
+*XAI-Guard: 63 phases · 350+ prompt-driven subphases · Research-grade ML · Production-grade Modular Monolith API · Enterprise-quality Next.js 14 Dashboard & Admin Panel.*

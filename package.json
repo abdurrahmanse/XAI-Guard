@@ -1,20 +1,39 @@
 {
-  "name": "XAI-Guard",
+  "name": "xai-guard",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:dashboard": "turbo run dev --filter=dashboard",
+    "dev:admin": "turbo run dev --filter=admin",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=web",
+    "build:dashboard": "turbo run build --filter=dashboard",
+    "build:admin": "turbo run build --filter=admin",
+    "start": "turbo run start",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\" --ignore-path .gitignore",
+    "check-types": "turbo run check-types",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "clean:build": "turbo run clean",
+    "kill:web": "kill-port 3000",
+    "kill:dashboard": "kill-port 3001",
+    "kill:admin": "kill-port 3002",
+    "kill:api": "kill-port 8000",
+    "kill:all": "kill-port 3000 3001 3002 8000",
+    "ports": "npx kill-port --list 3000 3001 3002 8000"
   },
   "devDependencies": {
-    "prettier": "3.9.6",
+    "kill-port": "^2.0.1",
+    "prettier": "^3.4.2",
     "turbo": "^2.10.12",
-    "typescript": "7.0.2"
+    "typescript": "^5.7.3"
   },
-  "packageManager": "pnpm@11.25.0",
+  "packageManager": "pnpm@9.15.4",
   "engines": {
-    "node": ">=24"
+    "node": ">=20",
+    "pnpm": ">=9"
   }
 }

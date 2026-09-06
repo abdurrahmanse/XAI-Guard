@@ -1,38 +1,202 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# Dependencies
-node_modules
+# ==============================================================================
+# 1. DEPENDENCIES
+# ==============================================================================
+# Node.js
+node_modules/
 .pnp
 .pnp.js
 
-# Local env files
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env_python/
+ENV/
+env.bak/
+venv.bak/
+
+
+# ==============================================================================
+# 2. ENVIRONMENT VARIABLES
+# ==============================================================================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
+*.env
+# (Explicitly do NOT ignore .env.example or .env.test if you want to commit defaults)
 
-# Testing
-coverage
 
-# Turbo
-.turbo
-
-# Vercel
-.vercel
-
-# Build Outputs
+# ==============================================================================
+# 3. BUILD OUTPUTS & CACHES
+# ==============================================================================
+# Next.js & React
 .next/
 out/
-build
-dist
+build/
+dist/
+
+# Turborepo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Caches
+.eslintcache
+.stylelintcache
+.prettiercache
+tsbuildinfo
+*.tsbuildinfo
 
 
-# Debug
+# ==============================================================================
+# 4. LOGS & DATABASES
+# ==============================================================================
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+celerybeat-schedule
+celerybeat.pid
+
+# Databases & Local state
+*.sqlite
+*.sqlite3
+db.sqlite3
+*.db
+.redis/
+
+
+# ==============================================================================
+# 5. MACHINE LEARNING & DATA
+# ==============================================================================
+# MLFlow
+mlruns/
+mlartifacts/
+
+# Jupyter / Notebooks
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# Data folders
+data/raw/
+data/processed/
+data/interim/
+data/external/
+*.csv
+*.tsv
+*.parquet
+*.h5
+*.hdf5
+*.pkl
+*.model
+
+
+# ==============================================================================
+# 6. TESTING & COVERAGE
+# ==============================================================================
+coverage/
+.nyc_output/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+playwright-report/
+test-results/
+
+
+# ==============================================================================
+# 7. OS & IDE SETTINGS
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# IDEs
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+.cursorrules
+.cursor/
+.fleet/
+
+# Secrets
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
 
 # Misc
-.DS_Store
-*.pem
+.directory

@@ -1,43 +1,97 @@
 @import "tailwindcss";
 
 @theme {
-  --color-severity-critical: hsl(348 83% 58%);
-  --color-severity-high: hsl(25 95% 53%);
-  --color-severity-medium: hsl(48 96% 53%);
-  --color-severity-low: hsl(217 91% 60%);
+  --color-severity-critical: var(--severity-critical);
+  --color-severity-high: var(--severity-high);
+  --color-severity-medium: var(--severity-medium);
+  --color-severity-low: var(--severity-low);
   
-  /* Deep, rich modern dark mode */
-  --color-background: hsl(230 25% 4%);
-  --color-foreground: hsl(0 0% 100%);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   
-  --color-card: hsl(230 20% 7%);
-  --color-card-foreground: hsl(0 0% 100%);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   
-  --color-primary: hsl(0 0% 100%);
-  --color-primary-foreground: hsl(230 25% 4%);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   
-  --color-muted: hsl(230 15% 15%);
-  --color-muted-foreground: hsl(230 10% 60%);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   
-  --color-accent: hsl(230 20% 12%);
-  --color-accent-foreground: hsl(0 0% 100%);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   
-  --color-border: hsl(230 15% 12%);
+  --color-border: var(--border);
 }
 
 @layer base {
+  :root {
+    /* LIGHT MODE */
+    --severity-critical: hsl(348 83% 58%);
+    --severity-high: hsl(25 95% 53%);
+    --severity-medium: hsl(48 96% 45%);
+    --severity-low: hsl(217 91% 60%);
+    
+    --background: hsl(0 0% 98%);
+    --foreground: hsl(230 25% 4%);
+    
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(230 25% 4%);
+    
+    --primary: hsl(230 25% 4%);
+    --primary-foreground: hsl(0 0% 100%);
+    
+    --muted: hsl(230 15% 94%);
+    --muted-foreground: hsl(230 10% 40%);
+    
+    --accent: hsl(230 20% 90%);
+    --accent-foreground: hsl(230 25% 4%);
+    
+    --border: hsl(230 15% 90%);
+  }
+  
+  .dark {
+    /* DEEP MODERN DARK MODE */
+    --severity-critical: hsl(348 83% 58%);
+    --severity-high: hsl(25 95% 53%);
+    --severity-medium: hsl(48 96% 53%);
+    --severity-low: hsl(217 91% 60%);
+    
+    --background: hsl(230 25% 4%);
+    --foreground: hsl(0 0% 100%);
+    
+    --card: hsl(230 20% 7%);
+    --card-foreground: hsl(0 0% 100%);
+    
+    --primary: hsl(0 0% 100%);
+    --primary-foreground: hsl(230 25% 4%);
+    
+    --muted: hsl(230 15% 15%);
+    --muted-foreground: hsl(230 10% 60%);
+    
+    --accent: hsl(230 20% 12%);
+    --accent-foreground: hsl(0 0% 100%);
+    
+    --border: hsl(230 15% 12%);
+  }
+
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-border, currentColor);
+    border-color: var(--border, currentColor);
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Background mesh only visible in dark mode */
+  .dark body {
     background-image: 
       radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.015) 0%, transparent 50%),
       radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.015) 0%, transparent 50%);

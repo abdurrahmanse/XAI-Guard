@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,7 +26,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-xs font-medium text-emerald-500">Live</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-muted to-muted/50 border border-white/10"></div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-muted to-muted/50 border border-black/10 dark:border-white/10"></div>
+            <ThemeToggle />
           </div>
         </header>
       </div>

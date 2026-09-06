@@ -14,7 +14,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
     "@react-pdf/renderer": "^4.9.0",
-    "@repo/env": "workspace:*",
+    "@xaiguard/env": "workspace:*",
     "@xaiguard/ui": "workspace:*",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-table": "^9.2.4",

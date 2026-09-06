@@ -2,10 +2,12 @@ from fastapi import APIRouter, WebSocket
 
 router = APIRouter()
 
+
 @router.get("/")
 def get_alerts():
     """Paginated alert feed."""
     return {"alerts": []}
+
 
 @router.websocket("/ws")
 async def websocket_alerts(websocket: WebSocket):

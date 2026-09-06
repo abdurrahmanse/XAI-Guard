@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
+
 @router.get("/")
 def health_check():
     """
@@ -11,9 +12,5 @@ def health_check():
     return {
         "status": "ok",
         "service": "xai-guard-api",
-        "stores": {
-            "db": "pending",
-            "cache": "pending",
-            "artifacts": "pending"
-        }
+        "stores": {"db": "pending", "cache": "pending", "artifacts": "pending"},
     }

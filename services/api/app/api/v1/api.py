@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from .endpoints import health, inference, alerts, models
+
+from .endpoints import alerts, health, inference, models
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["health"])

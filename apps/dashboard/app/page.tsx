@@ -1,75 +1,39 @@
-import { AlertTriangle, Activity, ShieldAlert, Terminal } from "lucide-react";
+import { Shield, ChevronRight, Activity } from "lucide-react";
 import { ThemeToggle } from "../components/common/theme-toggle";
 
-export default function DashboardHome() {
+export default function WebHome() {
   return (
-    <div className="min-h-screen bg-background font-sans p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        <div className="flex items-center justify-between space-y-2">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <ShieldAlert className="w-7 h-7 text-destructive" />
-              SOC Dashboard
-            </h2>
-            <p className="text-muted-foreground mt-1">Real-time threat monitoring and XAI explanations.</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <ThemeToggle />
-            <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-              Download Report
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="tracking-tight text-sm font-medium">Active Alerts</h3>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </div>
-            <div className="p-6 pt-0">
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">+3 since last hour</p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="tracking-tight text-sm font-medium">Model Confidence</h3>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="p-6 pt-0">
-              <div className="text-2xl font-bold">98.2%</div>
-              <p className="text-xs text-muted-foreground">Champion Model: XGBoost</p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm md:col-span-2">
-            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="tracking-tight text-sm font-medium">Events Analyzed</h3>
-              <Terminal className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="p-6 pt-0">
-              <div className="text-2xl font-bold">1,403,294</div>
-              <p className="text-xs text-muted-foreground">Past 24 hours</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6">
-            <h3 className="font-semibold leading-none tracking-tight">Live Event Stream</h3>
-            <p className="text-sm text-muted-foreground">Monitoring inbound network traffic.</p>
-          </div>
-          <div className="p-6 pt-0">
-            <div className="h-[300px] w-full rounded-md border border-dashed flex items-center justify-center bg-muted/20">
-              <span className="text-sm text-muted-foreground">Chart / Data Table goes here</span>
-            </div>
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 relative">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
       </div>
+      <main className="max-w-5xl mx-auto px-6 py-32 flex flex-col items-center text-center">
+        {/* Shadcn Badge Pattern */}
+        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 mb-8 gap-2">
+          <Activity className="w-3.5 h-3.5" />
+          XAI-Guard Platform v1.0
+        </div>
+        
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6 text-foreground">
+          Explainable AI for <br className="hidden sm:block" />
+          Cybersecurity Threat Detection
+        </h1>
+        
+        <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mb-10 leading-relaxed">
+          The world's first multi-model threat detection platform that balances perfect accuracy with human-readable, actionable explanations.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 gap-2 shadow">
+            <Shield className="w-4 h-4" />
+            Get Started
+          </button>
+          <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8 gap-2 shadow-sm">
+            View Documentation
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </main>
     </div>
   );
 }

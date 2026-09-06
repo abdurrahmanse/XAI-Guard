@@ -1,22 +1,19 @@
-import "./globals.css";
-import { ThemeProvider } from "../components/common/theme-provider";
+import './globals.css';
+import { Providers } from './providers';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: "XAI-Guard",
-  description: "Explainable AI Cybersecurity",
+export const metadata: Metadata = {
+  title: 'XAI-Guard | SOC Dashboard',
+  description: 'Explainable AI Threat Detection Platform',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body>
+        <Providers>
           {children}
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

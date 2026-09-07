@@ -1,84 +1,92 @@
 # ==============================================================================
-# 1. DEPENDENCIES
+# 1. NODE.JS & TURBOREPO (FULL-STACK FRONTEND/BACKEND)
 # ==============================================================================
-# Node.js
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environments
-venv/
-.venv/
-env/
-.env_python/
-ENV/
-env.bak/
-venv.bak/
-
-
-# ==============================================================================
-# 2. ENVIRONMENT VARIABLES
-# ==============================================================================
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*.local
-*.env
-# (Explicitly do NOT ignore .env.example or .env.test if you want to commit defaults)
-
-
-# ==============================================================================
-# 3. BUILD OUTPUTS & CACHES
-# ==============================================================================
-# Next.js & React
+# Build Outputs & Caches
 .next/
 out/
 build/
 dist/
-
-# Turborepo
 .turbo/
-
-# Vercel
 .vercel/
-
-# Caches
 .eslintcache
 .stylelintcache
 .prettiercache
 tsbuildinfo
 *.tsbuildinfo
 
+# ==============================================================================
+# 2. PYTHON (BACKEND & MACHINE LEARNING)
+# ==============================================================================
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments (Global rule to catch all .venv folders)
+**/.venv/
+**/venv/
+**/env/
+
+# Python caching and packaging
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # ==============================================================================
-# 4. LOGS & DATABASES
+# 3. MACHINE LEARNING DATA & MODELS (XAI-GUARD CUSTOM)
+# ==============================================================================
+# Ignore all large raw datasets (so GitHub doesn't crash)
+ml/data/**/*.csv
+ml/data/**/*.txt
+ml/data/**/*.pcap
+ml/data/**/*.pcap_ISCX.csv
+
+# Ignore saved AI models
+ml/models/**/*.pkl
+ml/models/**/*.h5
+ml/models/**/*.pt
+*.model
+
+# Ignore Jupyter Notebook checkpoints
+**/.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# Preserve the ml/data/ directory structure, but ignore all actual files inside
+ml/data/*
+!ml/data/raw/
+!ml/data/processed/
+!ml/data/README.md
+!ml/data/.gitignore
+!ml/data/**/.gitkeep
+
+# ==============================================================================
+# 4. ENVIRONMENT VARIABLES & SECRETS
+# ==============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+
+# ==============================================================================
+# 5. LOGS, TESTING & DATABASES
 # ==============================================================================
 # Logs
 logs/
@@ -87,97 +95,36 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
-celerybeat-schedule
-celerybeat.pid
 
-# Databases & Local state
+# Databases
 *.sqlite
 *.sqlite3
 db.sqlite3
 *.db
 .redis/
 
-
-# ==============================================================================
-# 5. MACHINE LEARNING & DATA
-# ==============================================================================
-# MLFlow
-mlruns/
-mlartifacts/
-
-# Jupyter / Notebooks
-.ipynb_checkpoints/
-profile_default/
-ipython_config.py
-
-# Data folders
-data/raw/
-data/processed/
-data/interim/
-data/external/
-*.csv
-*.tsv
-*.parquet
-*.h5
-*.hdf5
-*.pkl
-*.model
-
-
-# ==============================================================================
-# 6. TESTING & COVERAGE
-# ==============================================================================
+# Testing
 coverage/
 .nyc_output/
 .tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
 .pytest_cache/
 playwright-report/
 test-results/
 
-
 # ==============================================================================
-# 7. OS & IDE SETTINGS
+# 6. OS & IDE SETTINGS
 # ==============================================================================
-# macOS
+# macOS / Windows
 .DS_Store
 .AppleDouble
 .LSOverride
 Icon
 ._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Windows
 Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.stackdump
 [Dd]esktop.ini
 $RECYCLE.BIN/
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-*.lnk
 
-# IDEs
+# IDEs (VSCode, Cursor, IntelliJ)
 .idea/
 .vscode/
 !.vscode/settings.json
@@ -189,45 +136,3 @@ $RECYCLE.BIN/
 .cursorrules
 .cursor/
 .fleet/
-
-# Secrets
-*.pem
-*.key
-*.cert
-*.crt
-*.pfx
-*.p12
-
-# Misc
-.directory
-
-# --------------------------
-# ==============================================================================
-# 8. MACHINE LEARNING (CUSTOM)
-# ==============================================================================
-# Ignore all large data files
-ml/data/**/*.csv
-ml/data/**/*.txt
-ml/data/**/*.pcap
-ml/data/**/*.pcap_ISCX.csv
-
-# Ignore saved models
-ml/models/**/*.pkl
-ml/models/**/*.h5
-ml/models/**/*.pt
-*.model
-
-# Ignore Virtual Environment
-ml/.venv/
-
-# Ignore Jupyter Notebook checkpoints
-ml/notebooks/.ipynb_checkpoints/
-**/.ipynb_checkpoints/
-
-# Keep directory structure for data but ignore contents
-ml/data/*
-!ml/data/raw/
-!ml/data/processed/
-!ml/data/README.md
-!ml/data/.gitignore
-!ml/data/**/.gitkeep

@@ -152,3 +152,4 @@ async def logout(
     # (Future) Log LOGOUT to AuditLog here
 
     return {"detail": "Logged out successfully"}
+

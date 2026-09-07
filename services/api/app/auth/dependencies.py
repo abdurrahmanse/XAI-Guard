@@ -79,3 +79,4 @@ async def require_admin(
             detail="This action requires administrator privileges."
         )
     return user
+

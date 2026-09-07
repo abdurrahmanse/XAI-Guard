@@ -1,6 +1,6 @@
 # 07 — Backend Domain Modules & Frontend Architecture
 
-> **Phases 48–57** | Events, Predictions, Explanations, Model Registry, Alerts & WebSocket, Threat Intelligence, Dashboard Foundation, and Alert Feed components.
+> **Phases 48–56** | Events, Predictions, Explanations, Model Registry, Alerts & WebSocket, Threat Intelligence, Dashboard Foundation, and Alert Feed components.
 
 ## 🗺️ Research Paper Map
 
@@ -341,6 +341,7 @@ You will build the analyst-facing dashboard that makes the entire system visible
 
 ---
 
+
 ## Phase 56 — Alert Feed & Threat Details (`apps/dashboard`)
 
 **Context:** The primary analyst workflow: real-time alert feed → click alert → threat detail card with XAI explanation.
@@ -361,16 +362,6 @@ You will build the analyst-facing dashboard that makes the entire system visible
 
 ---
 
-## Phase 57 — Admin Console & Model Management (`apps/admin`)
-
-> **🎭 Role:** Internal Tools & MLOps Engineer
-> **📍 Context:** The Admin Console is a highly privileged Next.js application used by Senior Data Scientists and system administrators. It manages the Champion/Challenger model lifecycle and user roles.
-> **🔧 Task:** Scaffold `apps/admin/` as a separate Next.js 14 App Router project. Implement strict Role-Based Access Control (RBAC) middleware ensuring only `role === 'admin'` can access the app. Build the Model Registry Dashboard (`app/models/page.tsx`) to visualize the promotion history, trigger manual promotions, and monitor Challenger vs Champion drift.
-> **📦 Stack:** Next.js 14, Recharts, TanStack Query
-> **✅ Outcome:** `pnpm dev --filter=admin` starts the admin console on port 3002. Non-admin JWTs are instantly rejected by middleware. 
-
----
-
 ## Phase Map
 
 | Phase | Title | Subphases |
@@ -384,6 +375,5 @@ You will build the analyst-facing dashboard that makes the entire system visible
 | P54 | Marketing Website (`apps/web`) | 1 |
 | P55 | Dashboard Foundation (`apps/dashboard`) | 3 |
 | P56 | Alert Feed & Details (`apps/dashboard`) | 2 |
-| P57 | Admin Console (`apps/admin`) | 1 |
 
-**Previous ←** [06 — LIME, XAI Evaluation & Backend Core](06-backend-and-frontend-engineering.md) | **Next →** [08 — Production Deployment & Roadmap](08-production-deployment-and-roadmap.md)
+**Previous ←** [06 — LIME, XAI Evaluation & Backend Core](06-backend-and-frontend-engineering.md) | **Next →** [08 — Admin Panel, MLOps & Production Deployment](08-production-deployment-and-roadmap.md)

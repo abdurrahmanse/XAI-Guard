@@ -1,35 +1,25 @@
 # 08 — Admin Panel, MLOps & Production Deployment
 
-> **Phases 56–63** | Admin Console (`apps/admin`), MLOps Pipeline, Observability, CI/CD, Deployment Architecture, and Research Paper Publication.
+> **Phases 57–63** | Admin Console (`apps/admin`), MLOps Pipeline, Observability, CI/CD, Deployment Architecture, and Research Paper Publication.
 
 ## 🗺️ Research Paper Map
 
 | Phase | What You Build | Paper Section | Paper Artefact |
 |-------|---------------|---------------|----------------|
-| P56-57| Admin Console & Registry UI | §6 System Architecture | "Models are managed via a dedicated Next.js Admin interface..." |
+| P57 | Admin Console & Registry UI | §6 System Architecture | "Models are managed via a dedicated Next.js Admin interface..." |
 | P58 | Automated Retraining Pipeline | §6 Operational Fitness | Discussion of MLOps lifecycle |
 | P59 | Observability (Prometheus) | §6 Operational Fitness | Production latency monitoring |
 | P62 | Research Paper Finalization | All Sections | The complete `research-paper.pdf` |
 
 ---
 
-## Phase 56 — Admin Console Foundation (`apps/admin`)
+## Phase 57 — Admin Console & Model Registry UI (`apps/admin`)
 
 > **🎭 Role:** Internal Tools & MLOps Engineer
 > **📍 Context:** The Admin Console is a highly privileged Next.js application used by Senior Data Scientists. It manages the Champion/Challenger model lifecycle and system metrics. It must be strictly isolated from the SOC Dashboard (`apps/dashboard`) and Marketing site (`apps/web`).
-> **🔧 Task:** Scaffold `apps/admin/` as a Next.js 14 App Router project. Configure Tailwind CSS v4 and `next-themes`. Implement strict Role-Based Access Control (RBAC) middleware ensuring only `role === 'admin'` can access the app. If a non-admin attempts access, redirect to `/unauthorized`. Implement the layout with a sidebar containing links to: Model Registry, Retraining Pipeline, and System Settings.
-> **📦 Stack:** Next.js 14, Tailwind CSS v4, Zod
-> **✅ Outcome:** `pnpm dev --filter=admin` runs on port 3002. Only admin JWTs can view the layout.
-
----
-
-## Phase 57 — Admin Console Model Registry UI (`apps/admin`)
-
-> **🎭 Role:** MLOps UI Engineer
-> **📍 Context:** Data scientists need a visual interface to compare the Champion and Challenger models, view their SHAP feature distributions, and manually trigger model promotions.
-> **🔧 Task:** Implement the Model Registry view (`apps/admin/app/models/page.tsx`). Fetch models using TanStack Query from `GET /v1/registry`. Display a data table (using shadcn/ui) comparing F1, ROC-AUC, and p99 Latency. Implement a "Promote to Champion" modal that triggers `POST /v1/registry/promote`. Use Recharts to show historical F1 drift over time for the active Champion.
-> **📦 Stack:** Next.js 14, TanStack Query, Recharts, shadcn/ui
-> **✅ Outcome:** Admins can view and promote models. Optimistic UI updates the table immediately upon successful promotion.
+> **🔧 Task:** Scaffold `apps/admin/` as a Next.js 14 App Router project. Configure Tailwind CSS v4 and `next-themes`. Implement strict Role-Based Access Control (RBAC) middleware ensuring only `role === 'admin'` can access the app. Build the Model Registry view (`apps/admin/app/models/page.tsx`). Fetch models using TanStack Query from `GET /v1/registry`. Display a data table comparing F1, ROC-AUC, and p99 Latency. Implement a "Promote to Champion" modal that triggers `POST /v1/registry/promote`. Use Recharts to show historical F1 drift over time for the active Champion.
+> **📦 Stack:** Next.js 14, Tailwind CSS v4, Zod, TanStack Query, Recharts, shadcn/ui
+> **✅ Outcome:** `pnpm dev --filter=admin` runs on port 3002. Only admin JWTs can view the layout. Admins can view and promote models. Optimistic UI updates the table immediately upon successful promotion.
 
 ---
 
@@ -106,8 +96,8 @@
 | 26–32 | Classical ML & Sequence Models | 04 |
 | 33–39 | Transformer & XAI Evaluation | 05 |
 | 40–47 | LIME, XAI Evaluation & Backend Core | 06 |
-| 48–55 | Backend Domain Modules & Frontends (Web/Dashboard) | 07 |
-| 56–63 | Admin Console, MLOps & Production | 08 |
+| 48–56 | Backend Domain Modules & Frontends (Web/Dashboard) | 07 |
+| 57–63 | Admin Console, MLOps & Production | 08 |
 
 **Previous ←** [07 — Backend Domain Modules & Frontend Architecture](07-mlops-security-testing-and-performance.md)
 

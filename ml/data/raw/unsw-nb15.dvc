@@ -1,0 +1,6 @@
+outs:
+- md5: d41eac4b1b099e5bc3a80b4fe53e29cc.dir
+  size: 634060097
+  nfiles: 8
+  hash: md5
+  path: unsw-nb15

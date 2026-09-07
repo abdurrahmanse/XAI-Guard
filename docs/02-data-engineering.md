@@ -176,6 +176,8 @@ JS divergence is bounded [0, 1] (when using log base 2), making it easy to inter
 
 
 
+## Phase 11 — CICIDS-2017 Exploratory Data Analysis
+
 ### 🎓 What You Will Learn in Phase 11
 
 ### 📄 Research Paper Connection
@@ -570,6 +572,7 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 |-------|-------|-----------|
 | P9 | Dataset Strategy & Acquisition | 5 |
 | P10 | NSL-KDD EDA | 4 |
+| P11 | CICIDS-2017 EDA | 4 |
 | P12 | UNSW-NB15 EDA | 4 |
 | P13 | BETH EDA | 4 |
 | P14 | Cross-Dataset Schema Mapping | 4 |

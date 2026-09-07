@@ -1,24 +1,9 @@
-# Ignore everything in this directory
+# Ignore everything in this directory (so no data gets pushed to github)
 *
 
-# Except for these files (so the directory structure is preserved in git)
+# Except for these folder structures and readmes
 !.gitignore
 !README.md
 !raw/
-!interim/
 !processed/
-!features/
-!selected/
-!splits/
-
-# Explicitly ignore data files inside the subdirectories (DVC tracks them)
-raw/*
-interim/*
-processed/*
-features/*
-selected/*
-splits/*
-
-# Allow DVC pointer files and gitkeeps
-!**/*.dvc
 !**/.gitkeep

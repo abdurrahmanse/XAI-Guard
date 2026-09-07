@@ -202,48 +202,32 @@ $RECYCLE.BIN/
 .directory
 
 # --------------------------
-# Machine Learning & Data
-# --------------------------
-# Ignore all raw and processed data (handled by DVC)
-ml/data/raw/*
-!ml/data/raw/*.dvc
-!ml/data/raw/.gitignore
-ml/data/interim/
-ml/data/processed/
-ml/data/features/
-ml/data/selected/
-ml/data/splits/
-ml/models/trained/
+# ==============================================================================
+# 8. MACHINE LEARNING (CUSTOM)
+# ==============================================================================
+# Ignore all large data files
+ml/data/**/*.csv
+ml/data/**/*.txt
+ml/data/**/*.pcap
+ml/data/**/*.pcap_ISCX.csv
 
-# MLflow tracking
-ml/mlruns/
-mlruns/
-*.sqlite
-mlruns.db
+# Ignore saved models
+ml/models/**/*.pkl
+ml/models/**/*.h5
+ml/models/**/*.pt
+*.model
 
-# Jupyter Notebooks
-.ipynb_checkpoints/
+# Ignore Virtual Environment
+ml/.venv/
+
+# Ignore Jupyter Notebook checkpoints
 ml/notebooks/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
-# DVC
-.dvc/cache
-.dvc/tmp
-.dvc/config.local
-
-# Python Environments & Cache
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-.coverage
-htmlcov/
-.venv/
-venv/
-env/
-ml/.venv_dvc/
-.env
-
-# OS & Editor
-.DS_Store
-.vscode/
-.idea/
+# Keep directory structure for data but ignore contents
+ml/data/*
+!ml/data/raw/
+!ml/data/processed/
+!ml/data/README.md
+!ml/data/.gitignore
+!ml/data/**/.gitkeep

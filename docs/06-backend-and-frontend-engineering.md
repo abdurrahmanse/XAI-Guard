@@ -1,14 +1,55 @@
 # 06 — LIME, XAI Evaluation & Backend Core
 
 > **Phases 40–47** | LIME explainability, Attention XAI, XAI stability, human-centred evaluation, robustness testing, drift detection, modular monolith core layer, and auth module.
->
-> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
+
+## 🗺️ Research Paper Map
+
+| Phase | What You Build | Paper Section | Paper Artefact |
+|-------|---------------|---------------|----------------|
+| P40 | LIME explainer + SHAP-LIME correlation | §4.4 Explainability | Table 8 LIME-SHAP Spearman ρ |
+| P41 | Attention Rollout XAI for Transformer/LSTM | §4.4 Explainability | Figure 3d attention heatmap |
+| P42 | XAI Pillar 2 metrics (stability + fidelity) | §4.4, Table 9 | AUS scores for all 6 models |
+| P43 | Human evaluation protocol | §4.4 Human-Centred Evaluation | AUS formula + Wilcoxon results |
+| P44 | Robustness testing (Gaussian + ART) | §4.6 Robustness | Robustness curves, evasion success rate |
+| P45 | MMD drift detection + temporal robustness | §4.5 Temporal Robustness | Table 5 MMD scores + detection delay |
+| P46 | Modular monolith core layer | §6 System Implementation | Architecture overview |
+| P47 | Auth module | §6 System Implementation | Security design note |
+
+> **Note on overlap with Phase 39:** Phase 40.2 (SHAP-LIME comparison notebook) **overlaps intentionally** with the new Subphase 39.4 added in doc-05. Phase 39.4 is the **research version** (in the ML folder, produces Table 8 of the paper). Phase 40.2 is the **production implementation** (in the backend, used by the API's explanation service). Both must exist.
+
+---
 
 ---
 
 ## Phase 40 — LIME Explainability
 
 **Context:** LIME provides model-agnostic explanations by perturbing the input and fitting a local linear model. It is the second XAI method compared against SHAP for analyst utility.
+
+
+### 🎓 What You Will Learn in Phase 40
+You will implement LIME (Local Interpretable Model-Agnostic Explanations) as your second XAI method. LIME uses a fundamentally different approach to SHAP: instead of computing exact Shapley values, it approximates the model locally by perturbing the input and fitting a simple linear model. You will learn why this is both a strength (model-agnostic, fast) and a weakness (stochastic, unstable).
+
+### 📄 Research Paper Connection
+- Phase 40.1 → **§4.4**: "We implemented LIME using `lime.lime_tabular.LimeTabularExplainer` with n_perturbations=5000 and a fixed random seed of 42 for deterministic production explanations."
+- Phase 40.2 → **Table 8**: LIME-SHAP Spearman ρ per model (this overlap with Phase 39.4 is intentional — use both notebooks; the ML notebook produces the research table, the API implementation serves it in production)
+- Phase 40.3 Stability → **§4.4**: "LIME stability scores were computed by running 10 explanations on identical inputs with different random seeds..."
+- Phase 40 answers **RQ4**: "Which XAI method produces the most analyst-actionable explanations?"
+
+### 📖 Concept: LIME vs SHAP — Fundamental Difference
+| Property | SHAP | LIME |
+|----------|------|------|
+| Approach | Exact Shapley values (all feature coalitions) | Local linear approximation (perturbations) |
+| Speed | Slow for large feature sets | Fast (5000 perturbations ≈ 2–5 seconds) |
+| Consistency | Same input → same output (deterministic) | Stochastic by default (fixed seed needed) |
+| Faithfulness | Mathematically exact (additivity property) | Approximation — may not be faithful |
+| Global use | Can aggregate (mean |SHAP|) for global view | Local only — cannot aggregate reliably |
+| Best use | Research + production (with TreeExplainer) | Cross-validation against SHAP |
+
+**For your paper:** Use SHAP as primary (mathematically rigorous), LIME as secondary (model-agnostic cross-check). High SHAP-LIME agreement means both methods agree on what matters — increasing analyst trust.
+
+### ⚠️ Common Mistakes — LIME
+- **Not fixing random_state in production**: LIME without a fixed seed gives different feature rankings for the same event on repeated calls. Always use `random_state=42` in production.
+- **Too few perturbations**: `n_perturbations=500` is too few for a 50-feature space. Use 5000 minimum — this ensures the local linear model captures enough of the feature space.
 
 #### Subphase 40.1 — LIME Explainer Implementation
 
@@ -39,6 +80,20 @@
 ## Phase 41 — Attention-Based Explainability
 
 **Context:** For LSTM and Transformer models, attention weights provide a model-native explanation of which time steps in the event sequence the model focused on, complementing SHAP and LIME.
+
+
+### 🎓 What You Will Learn in Phase 41
+You will implement Attention Rollout — a method for propagating attention weights across Transformer layers to produce a single importance score per input token (or timestep). This is your third XAI method, applicable only to Transformer and LSTM models. You will learn why attention weights alone are NOT sufficient for explanation (Jain & Wallace, 2019 showed attention ≠ explanation) and how Rollout addresses this.
+
+### 📄 Research Paper Connection
+- Phase 41.1 → **Figure 3d**: Attention heatmap showing which events in the sequence the Transformer focused on for a BruteForce detection
+- Phase 41.2 → **§4.4 Cross-Method Attribution**: "Attention Rollout timestep importance was compared to SHAP feature importance at the feature level. High attention on event_t correlated (ρ=X) with high SHAP values for time-based features..."
+- Phase 41 completes the three-XAI-method comparison (SHAP + LIME + Attention) that answers **RQ4**
+
+### 📖 Concept: Why Attention ≠ Explanation (Jain & Wallace, 2019)
+Raw attention weights show where the model LOOKED, not what caused the decision. Problem: you can permute attention weights and still get the same output in some cases — meaning the model's decision wasn't actually driven by those weights. Attention Rollout (Abnar & Zuidema, 2020) fixes this by recursively multiplying attention weight matrices across all layers, accounting for residual connections. This produces a more faithful importance score.
+
+**In your paper:** "We use Attention Rollout (Abnar & Zuidema, 2020) rather than raw attention weights, following the finding by Jain & Wallace (2019) that raw attention does not reliably indicate explanation faithfulness."
 
 #### Subphase 41.1 — Attention Rollout Visualisation
 
@@ -90,6 +145,22 @@
 
 **Context:** Real-world attack traffic is adversarial. Models must maintain performance when inputs are perturbed by noise or adversarial manipulation, quantifying how resistant each model is to evasion.
 
+
+### 🎓 What You Will Learn in Phase 44
+Robustness testing answers: "What happens to the model when an attacker deliberately tries to fool it?" You will learn two approaches: Gaussian noise (approximating accidental perturbation or imprecise sensors) and ART adversarial examples (approximating deliberate evasion attacks).
+
+### 📄 Research Paper Connection
+- Phase 44.1 → **§4.6**: "We evaluated robustness under Gaussian noise at σ ∈ {0.01, 0.05, 0.10, 0.20}. XGBoost maintained F1=X at σ=0.10, demonstrating R=Y robustness..."
+- Phase 44.2 → **§4.6**: "For adversarial evasion, HopSkipJump attacks succeeded in misclassifying Z% of CRITICAL threats..."
+- Phase 44 provides evidence for **RQ8** (temporal drift robustness — also includes adversarial robustness)
+
+### 📖 Concept: Gaussian Noise vs Adversarial Examples
+**Gaussian noise:** Random perturbation to feature values. Models a noisy sensor or imprecise traffic measurement. A robust model should maintain high F1 even when input features have small random errors.
+
+**Adversarial examples (ART):** Optimised perturbations that maximally reduce model confidence while making minimal changes to features. Models a sophisticated attacker who knows your model and deliberately manipulates their traffic to evade detection. Much harder to defend against.
+
+**For your paper:** Gaussian results show baseline robustness. ART results show worst-case adversarial vulnerability — this is a significant limitation to discuss in §7 Limitations.
+
 #### Subphase 44.1 — Gaussian Noise Robustness
 
 > **🎭 Role:** ML Security Research Engineer with adversarial robustness expertise
@@ -111,6 +182,29 @@
 ## Phase 45 — Drift Detection System
 
 **Context:** Production models degrade as network traffic patterns evolve. The drift detection system triggers retraining before accuracy drops cause missed attacks — the most safety-critical MLOps component.
+
+
+### 🎓 What You Will Learn in Phase 45
+Concept drift occurs when the statistical properties of production data change over time, degrading model performance. Real network traffic evolves: new attack tools emerge, attacker patterns change, benign traffic patterns shift seasonally. You will learn MMD (Maximum Mean Discrepancy) as a principled statistical test for detecting this drift.
+
+### 📄 Research Paper Connection
+- Phase 45.1–45.2 → **§4.5 Temporal Robustness**: "We used MMD drift detection (alibi-detect, p=0.05) with a 5000-sample reference window from CICIDS-2017 training data. BETH's natural drift windows served as ground truth for validation..."
+- Phase 45.2 Detection delay → **Table 5**: "Drift was detected after N batches of 1000 events (median detection delay = X minutes)"
+- Phase 45 answers **RQ8**: "Is per-attack-type F1 consistent across temporal data drift windows?"
+
+### 📖 Concept: Maximum Mean Discrepancy (MMD)
+MMD measures the statistical distance between two distributions using kernel functions. Given a training distribution P (reference) and a production distribution Q (current window):
+
+`MMD²(P, Q) = E[k(x,x')] + E[k(y,y')] − 2E[k(x,y)]`
+
+where k is a kernel function (usually RBF). If MMD is close to 0, distributions are similar. If MMD is large, distributions have diverged (drift).
+
+**Practical thresholds in XAI-Guard:**
+- MMD < 0.05: NONE — no drift, model operating normally
+- 0.05 ≤ MMD < 0.10: WARNING — monitor closely, consider scheduling retraining
+- MMD ≥ 0.10: CRITICAL — trigger automated retraining immediately
+
+**In your paper:** "We set a two-level threshold (WARNING: MMD=0.05, CRITICAL: MMD=0.10) calibrated so that the NONE/WARNING boundary corresponds to a 5% false positive rate on the training reference distribution."
 
 #### Subphase 45.1 — MMD Drift Detector
 
@@ -141,6 +235,20 @@
 ## Phase 46 — Modular Monolith Core Layer
 
 **Context:** The core layer provides shared infrastructure to all nine domain modules. It owns no business logic and exports only utilities — all domain modules import from core but never from each other.
+
+
+### 🎓 What You Will Learn in Phase 46
+You will build the core layer of the FastAPI modular monolith — the shared infrastructure that all nine domain modules (Auth, Events, Predictions, Explanations, Models, Alerts, Threats, Dashboard, Admin) use without duplicating. You will learn: pydantic-settings for type-safe configuration, RFC 7807 error responses, Redis async patterns, and observability middleware.
+
+### 📖 Concept: Why Modular Monolith for a Research Platform?
+A microservices architecture would split each module into a separate deployable service. This sounds modern, but for a research project (one developer, student resources, research reproducibility priority), it creates enormous operational overhead: service discovery, inter-service authentication, distributed tracing, multiple deployment pipelines.
+
+The modular monolith gives you the best of both worlds:
+- **One deployable unit** → simple deployment, easy debugging, reproducible experiments
+- **Enforced module boundaries** → modules cannot import from each other's internals (only via core)
+- **Easy extraction later** → if you need to scale one module to a separate service post-publication, the boundaries are already clean
+
+**In your paper (§6):** "The production system uses a modular monolith architecture with nine domain modules. This choice optimises for research reproducibility and operational simplicity while maintaining module boundary discipline."
 
 #### Subphase 46.1 — Settings & Configuration
 
@@ -211,6 +319,27 @@
 > **🔧 Task:** Implement `services/api/auth/audit.py`. `AuditLogger` async class with `log_action(db_session: AsyncSession, user_id: UUID, action: AuditAction, resource_type: str, resource_id: str, request: Request, details: dict)` that creates an `AuditLog` record with: user_id, action (StrEnum: LOGIN, LOGOUT, PROMOTE_MODEL, ROLLBACK_MODEL, ACKNOWLEDGE_ALERT), resource_type, resource_id, client_ip (extracted from `X-Forwarded-For` if present, falling back to `request.client.host`), user_agent, details as JSONB, timestamp. Inject `AuditLogger` into login, logout, promote, rollback, and acknowledge handlers. Write a test that verifies a login attempt creates an AuditLog record with the correct IP address from `X-Forwarded-For`.
 > **📦 Stack:** SQLAlchemy 2 async, pydantic v2, asyncpg
 > **✅ Outcome:** Every login, logout, model promotion, rollback, and alert acknowledgement creates an AuditLog record. IP address is correctly extracted from `X-Forwarded-For`.
+
+
+#### Subphase 45.4 — Writing Temporal Robustness Results
+
+> **🎭 Role:** ML Research Scientist and Technical Writer
+> **📍 Context:** Phase 45.2 produced the drift detection validation results (MMD scores per BETH window, detection delay in batches). This subphase converts those raw results into the paper's §4.5, which answers RQ8.
+> **🔧 Task:** Create `ml/notebooks/drift/02_temporal_robustness_writing.ipynb`. Load the drift validation results from MLflow (run_id from Phase 45.2). Build **Table 5** (for paper):
+>
+> | Window | MMD Score | Drift Detected? | Detection Delay (batches) | Champion F1 |
+> |--------|-----------|-----------------|--------------------------|-------------|
+> | Pre-drift (BETH W1) | ? | No | N/A | ? |
+> | During-drift W2 | ? | WARNING | ? | ? |
+> | During-drift W3 | ? | CRITICAL | ? | ? |
+>
+> Write the §4.5 narrative (template):
+> "We evaluated temporal robustness using BETH's natural drift windows. The MMD detector correctly identified drift in all three windows. During the CRITICAL drift window (W3, MMD=X), the Champion XGBoost model's F1 macro dropped from Y to Z (ΔF1=W). Drift was detected after K batches of 1000 events (approximately M minutes of real-time traffic). Automated retraining was triggered and restored F1 to Q within [time]."
+>
+> Fill in all placeholders with real numbers. This paragraph IS your paper's §4.5.
+> **📦 Stack:** Jupyter Markdown, mlflow, pandas
+> **✅ Outcome:** Table 5 is complete with real numbers. The §4.5 narrative draft is ready for the paper.
+
 
 ---
 

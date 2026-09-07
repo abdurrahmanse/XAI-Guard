@@ -1,14 +1,40 @@
 # 07 — Backend Domain Modules & Security Dashboard
 
 > **Phases 48–55** | Events, Predictions, Explanations, Model Registry, Alerts & WebSocket, Threat Intelligence, Dashboard Foundation, and Alert Feed components.
->
-> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
+
+## 🗺️ Research Paper Map
+
+| Phase | What You Build | Paper Section | Paper Artefact |
+|-------|---------------|---------------|----------------|
+| P48 | Event ingestion + deduplication | §6 System Architecture | "Events are ingested via POST /v1/events/ingest..." |
+| P49 | Prediction endpoint + feature cache | §6 Operational Fitness | Latency measurements Table 6 Row: API overhead |
+| P50 | SHAP/LIME Celery explanation tasks | §6 + §4.4 | Async XAI architecture diagram |
+| P51 | Champion/Challenger model registry API | §6 + §4.3 | "Promotion requires ΔF1≥0.020 AND p<0.0033..." |
+| P52 | Alerts + WebSocket real-time delivery | §6 System Architecture | "Alerts delivered via WebSocket within 10s..." |
+| P53 | MITRE ATT&CK threat intelligence | §6 + §1 Motivation | MITRE mapping table (attack type → technique ID) |
+| P54–55 | Dashboard + Alert Feed UI | §6 Demo / Appendix | System demonstration screenshots |
+
+> **Research Priority in This Doc:** Phases 48–53 are production infrastructure. Their value for the paper is primarily in **§6 (System Implementation and Operational Fitness)**. Focus on Phase 51 (model registry) and Phase 52 (alerts) first — they directly demonstrate the Champion/Challenger governance policy and the end-to-end detection pipeline that the paper describes. The dashboard phases (P54–55) come last.
+
+---
 
 ---
 
 ## Phase 48 — Events Module
 
 **Context:** The front door of the XAI-Guard system. Receives, validates, deduplicates, stores, and queues all incoming security events. Every correctness requirement here is safety-critical — missed events mean missed detections.
+
+
+### 🎓 What You Will Learn in Phase 48
+You will build the entry point of the entire XAI-Guard production system. Every security event flows through the events module: validation → deduplication → storage → queuing. This teaches you: async FastAPI patterns, Redis deduplication with pipelines, PostgreSQL bulk insert, and Redis Streams as a durable message queue.
+
+### 📄 Research Paper Connection
+Phase 48 → **§6 System Architecture**: "Security events are ingested via POST /v1/events/ingest (accepting up to 1000 events per batch). Events are deduplicated using a 5-minute SHA-256 hash window before storage and prediction queuing."
+
+### 📖 Concept: Why Redis Streams over Kafka for This Project?
+Kafka is the industry standard for high-throughput streaming, but requires a ZooKeeper or KRaft cluster (operational complexity). Redis Streams provide similar guarantees (durable, consumer-group acknowledgement, pending-entries for replay) with zero additional infrastructure — Redis is already in the stack for deduplication and caching.
+
+**In your paper:** "We use Redis Streams for event queueing. Events persist in the stream until explicitly acknowledged by the prediction worker, ensuring zero event loss even if the prediction service restarts."
 
 #### Subphase 48.1 — Event Ingestion Endpoint
 
@@ -55,6 +81,24 @@
 ## Phase 49 — Predictions Module
 
 **Context:** The performance-critical hot path. Loads the Champion model, runs the feature pipeline, makes predictions, and dispatches async explanation generation — all within a P99 ≤ 100ms budget.
+
+
+### 🎓 What You Will Learn in Phase 49
+The prediction endpoint is the hottest path in the entire system — every security event passes through it. You will learn: how to load ML models into API memory at startup, hot-reload without downtime, feature caching to reduce computation, and the fire-and-forget pattern for async SHAP generation.
+
+### 📄 Research Paper Connection
+Phase 49 → **§6 Operational Fitness (Table 6, "API overhead" row)**: "The end-to-end prediction latency (event ingestion → prediction response, measured at P99) was X ms. Feature engineering contributes Y ms; model inference Z ms; async SHAP dispatch is non-blocking."
+
+### 📖 Concept: Fire-and-Forget for XAI (Why Not Compute SHAP Synchronously?)
+SHAP computation takes 1–5 seconds per prediction (for TreeExplainer on a trained XGBoost with 50 features). If you computed SHAP synchronously in the prediction endpoint, your P99 latency would exceed 5 seconds — violating the 100ms production budget and making the system unusable for real-time detection.
+
+Fire-and-forget pattern:
+1. Prediction endpoint returns response in <100ms
+2. `asyncio.create_task(dispatch_shap_celery_task(prediction_id))` — non-blocking dispatch
+3. SHAP runs in a Celery worker (separate process) while the analyst already sees the alert
+4. When SHAP finishes (5–30 seconds later), it updates the database and pushes to WebSocket
+
+**In your paper:** "Explanation generation is asynchronous. The prediction endpoint dispatches a Celery task and returns immediately. Analysts receive the alert in under 100ms P99; SHAP explanations appear within 30 seconds via WebSocket push."
 
 #### Subphase 49.1 — Champion Model Loading Service
 
@@ -124,6 +168,24 @@
 
 **Context:** Owns the Champion/Challenger lifecycle. Provides management endpoints, automates nightly shadow evaluation, and enforces the multi-gate promotion policy from Phase 1.
 
+
+### 🎓 What You Will Learn in Phase 51
+The model registry module is the most research-relevant backend phase. It implements the Champion/Challenger governance policy from Phase 1.5 as production code. You will learn: how to expose admin-only API endpoints, how to enforce multi-gate promotion logic, and how Celery Beat schedules the nightly evaluation.
+
+### 📄 Research Paper Connection
+Phase 51 → **§4.3 Champion Selection** + **§6 Production System**:
+- "The Champion model is selected via automated nightly evaluation. Promotion requires: ΔF1 ≥ 0.020, ΔROC-AUC ≥ 0.010, P99 ≤ 100ms, McNemar's p < 0.0033 (Bonferroni-corrected)."
+- "In 3 months of shadow evaluation, the Champion was promoted from XGBoost v1.0 to XGBoost v2.1 after the Challenger accumulated sufficient shadow predictions."
+
+### 📖 Concept: Why 4 Promotion Gates?
+A single-gate promotion (ΔF1 > threshold) is not sufficient for a security system:
+1. **ΔF1 ≥ 0.020**: Ensures the improvement is practically meaningful (not just random variance)
+2. **ΔROC-AUC ≥ 0.010**: Ensures the improvement extends to ranking quality, not just threshold-specific F1
+3. **P99 ≤ 100ms**: Ensures the Challenger doesn't introduce latency regression (a faster model with lower F1 is not an improvement)
+4. **McNemar's test p < 0.0033**: Ensures the error patterns are statistically different (the Challenger catches cases the Champion misses, not the same errors)
+
+A Challenger that passes all 4 gates is genuinely, reliably better. This is the methodological rigour that makes your paper's Champion selection defensible.
+
 #### Subphase 51.1 — Registry Endpoints
 
 > **🎭 Role:** Senior Backend Engineer and MLOps Specialist
@@ -153,6 +215,18 @@
 ## Phase 52 — Alerts & WebSocket Module
 
 **Context:** Real-time alert delivery to analysts is the primary analyst-facing feature. The module creates, deduplicates, manages alert state, and broadcasts via WebSocket.
+
+
+### 🎓 What You Will Learn in Phase 52
+The alerts module closes the loop from event ingestion to analyst notification. You will learn WebSocket connection management — keeping thousands of concurrent connections alive and broadcasting alert messages to all connected analysts in real-time.
+
+### 📄 Research Paper Connection
+Phase 52 → **§6**: "Alert delivery latency (event ingestion → analyst notification) was measured at P99=Xms, meeting the SLO of ≤10 seconds. Alerts are pushed via WebSocket to all connected analyst dashboards simultaneously."
+
+### 📖 Concept: WebSocket vs REST Polling
+REST polling: analyst's browser sends `GET /v1/alerts?since=last_timestamp` every N seconds. Problems: N-second delay before analyst sees critical alert; N×(analyst count) requests/second, even when there are no new alerts.
+
+WebSocket: persistent bidirectional connection. Server pushes new alert to all connected analysts immediately when it is created. No delay, no unnecessary requests. For a security dashboard where analysts need to see CRITICAL alerts in seconds, WebSocket is the correct choice.
 
 #### Subphase 52.1 — Alert Creation & Deduplication Service
 
@@ -192,6 +266,15 @@
 
 **Context:** Replaces Phase 21 stubs with live integrations. Enriches every prediction with IP reputation, Tor exit node detection, and MITRE ATT&CK technique mapping from the definitive taxonomy.
 
+
+### 🎓 What You Will Learn in Phase 53
+Threat intelligence enriches predictions with context from external databases (AbuseIPDB for known malicious IPs) and the MITRE ATT&CK framework (mapping attack types to standardised technique IDs). This is what transforms a raw ML classification into an actionable security finding.
+
+### 📄 Research Paper Connection
+Phase 53 → **§1 Motivation** + **§6**: "Each prediction is enriched with MITRE ATT&CK technique mappings, grounding the ML classification in the structured threat knowledge base used by enterprise SOC teams."
+
+The MITRE mapping table (PortScan → T1046, BruteForce → T1110, DDoS → T1498) demonstrates that your attack taxonomy aligns with the industry-standard threat taxonomy — a point reviewers will appreciate.
+
 #### Subphase 53.1 — AbuseIPDB & Tor Integration
 
 > **🎭 Role:** Senior Backend Engineer with external API integration expertise
@@ -221,6 +304,28 @@
 ## Phase 54 — Security Dashboard Foundation & Layout
 
 **Context:** The Next.js 14 App Router security analyst dashboard. Dark-mode-first, real-time, and purpose-built for SOC environments with persistent colour-coded severity signals.
+
+
+### 🎓 What You Will Learn in Phases 54–55
+You will build the analyst-facing dashboard that makes the entire system visible and usable. This teaches you: Next.js 14 App Router with RSC, TanStack Query for async data, Recharts for analytical data visualisation, and Tailwind CSS with shadcn/ui for Swiss + Minimalist enterprise UI (see `docs/design.md` for the full design system specification).
+
+### 📄 Research Paper Connection
+Phases 54–55 → **§6 + Appendix**: System demonstration screenshots. Include in your paper:
+1. The main dashboard showing CRITICAL alerts feed (demonstrates end-to-end detection)
+2. An alert detail view showing the SHAP waterfall chart (demonstrates XAI integration)
+3. The model comparison view showing Table 4 inline (demonstrates the research connection)
+
+**In your paper appendix:** "Figure A1: XAI-Guard analyst dashboard. Figure A2: Alert detail with SHAP explanation. Figure A3: Model comparison view showing Champion/Challenger status."
+
+These screenshots, combined with the system description in §6, show that your research produced a deployable system — not just offline notebook experiments.
+
+### 📖 Concept: Why a Real Dashboard Matters for a Research Paper
+Most IDS papers present only offline evaluation results (Table of F1 scores + some XAI plots). Building a live system that serves real-time predictions via a production-grade dashboard demonstrates:
+1. **Practical deployability** — the research is not just academic
+2. **End-to-end integration** — all six models, XAI, and the Champion/Challenger policy work together
+3. **Analyst-centred design** — the XAI explanations are actually surfaced to end users, not just computed
+
+This is a meaningful contribution that separates your paper from "yet another IDS benchmark paper."
 
 #### Subphase 54.1 — App Setup, Theme & Global Styles
 

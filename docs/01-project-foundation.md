@@ -1,14 +1,89 @@
 # 01 — Project Foundation
 
 > **Phases 1–8** | Research scoping, project charter, monorepo setup, infrastructure, database schema, modular monolith design, API contract strategy, and frontend architecture.
->
-> **How to use:** Each subphase contains a structured prompt. Copy the full prompt block into your AI code editor (antigraveti). The prompt includes your role, architectural context, precise tasks, required packages, and the expected outcome.
+
+## 🗺️ Research Paper Map
+
+| Phase | What You Build | Paper Section | Paper Artefact |
+|-------|---------------|---------------|----------------|
+| P1 | Research questions + evaluation framework | §1 Introduction, §3 Methodology | 8 RQs, 3-pillar framework, CDS formula |
+| P2 | Project charter + glossary + ADRs | — | Internal governance (not in paper) |
+| P3 | Monorepo + Python environment | §4.1 Experimental Setup | "All experiments run in a reproducible conda env..." |
+| P4 | Docker Compose local stack | §4.1 Experimental Setup | "MLflow tracked at localhost:5000..." |
+| P5 | Database schema + ORM | — | Enables the production system in §6 |
+| P6 | Modular monolith design | §6 Operational Fitness | Architecture description |
+| P7 | OpenAPI contract strategy | — | Enables the dashboard in §6 |
+| P8 | Frontend architecture | — | Enables the analyst workflow in §6 |
+
+> **Critical for Paper:** Phase 1 is the most research-critical phase in the entire project. The 8 Research Questions (RQ1–RQ8) written here appear verbatim in your paper's Introduction. The Three-Pillar Framework defined here becomes §3 of your paper. The CDS formula defined here becomes the primary Pillar 3 metric in Table 4. **Do not rush Phase 1 — the whole paper's structure flows from it.**
+
+---
 
 ---
 
 ## Phase 1 — Research Statement & Evaluation Framework
 
 **Context:** Define the research question, six competing models, and the exact metrics that determine the winner before a single line of code is written.
+
+
+### 🎓 What You Will Learn in Phase 1
+Phase 1 is pure research design — no code is written. You are learning how to define a research problem rigorously. This is the skill that separates a student who builds a project from a researcher who publishes a paper. Every decision here (which models to compare, which metrics to use, how to score them) is a methodological choice that reviewers will scrutinise.
+
+**By the end of Phase 1, you will have:**
+- A formal research statement you can adapt directly as your paper's Abstract + Introduction
+- 8 testable research questions, each with a null and alternative hypothesis
+- A scoring formula (CDS) that objectively selects the Champion model
+- A dataset strategy that explains WHY these 4 datasets were chosen (not just which ones)
+- A Champion/Challenger governance policy that makes your system production-grade
+
+### 📄 Research Paper Connection
+Every subphase of Phase 1 maps to a specific paper section:
+- P1.1 Research Statement → Paper Abstract + §1.1 Motivation
+- P1.2 Research Questions → Paper §1.3 Research Questions (listed verbatim)
+- P1.3 Evaluation Framework → Paper §3.2 Evaluation Methodology
+- P1.4 Dataset Selection → Paper §3.1 Datasets
+- P1.5 Champion/Challenger Policy → Paper §6 Production Deployment
+
+### 📖 Concept: The Three-Pillar Evaluation Framework
+Most IDS papers only report accuracy or F1. That is insufficient for a production system. XAI-Guard uses three pillars:
+
+**Pillar 1 — Prediction Performance:** Does the model detect attacks accurately?
+- F1 Macro (primary metric — handles class imbalance correctly)
+- Per-class F1 for each of the 7 attack taxonomy classes (DDoS, PortScan, BruteForce, Botnet, WebAttack, Infiltration, Normal)
+- ROC-AUC, PR-AUC
+
+**Pillar 2 — Explainability Quality:** Can an analyst trust and understand WHY the model fired?
+- SHAP stability score (1 − CV of SHAP values across 10 runs on the same input)
+- LIME-SHAP rank correlation (Spearman ρ — do both methods agree on important features?)
+- Analyst Utility Score (AUS)
+
+**Pillar 3 — Operational Fitness:** Can the model be deployed within production constraints?
+- Inference latency P99 ≤ 100ms on CPU (the production budget gate)
+- Peak RSS memory (MB)
+- Model artifact size (MB)
+- **Composite Deployment Score (CDS):** `CDS = 0.40 × norm(F1) + 0.35 × norm(1/latency_p99) + 0.25 × norm(1/memory_mb)`
+
+**Why CDS matters for your paper:** Most papers compare models only on F1. By introducing CDS, you add an operationally meaningful dimension that many reviewers will appreciate as novel. It directly answers RQ6 ("Which is the most cost-efficient model for CPU-only deployment?") with a single number.
+
+### 📖 Concept: Champion/Challenger as Production ML Governance
+Champion/Challenger is not just an implementation detail — it is a **ML governance pattern** used at Google, Netflix, and every serious ML production system. Your paper can describe it as a contribution in §6:
+
+- **Champion:** The current production model, serving 100% of live traffic
+- **Challenger:** A newly trained model running in shadow evaluation (sees all events but its predictions are not served to analysts)
+- **Promotion gates:** Challenger must beat Champion by ΔF1 ≥ 0.020, pass McNemar's test, and meet P99 ≤ 100ms BEFORE being promoted
+- **Rollback:** If the new Champion degrades, one command reverts to the previous Champion
+
+**In your paper:** "We implement a Champion/Challenger governance framework (§6). No model is promoted without meeting all four statistical and operational gates. This prevents performance regression in production."
+
+### 📖 Concept: McNemar's Test for Model Comparison
+McNemar's test is the statistically correct test for comparing two classifiers on the same test set. It tests whether the two models make DIFFERENT errors (not just whether one has a higher F1). The promotion policy uses it as a safety gate: a Challenger with higher F1 but errors on the same samples as the Champion is not truly better.
+
+**In your paper (§5 Statistical Analysis):** "All pairwise model comparisons use McNemar's test (α=0.05, Bonferroni-corrected for 15 comparisons, threshold p<0.0033)."
+
+### ⚠️ Common Mistakes — Research Design Phase
+- **Writing research questions that are too vague**: "Is deep learning better than classical ML?" is not a research question. "Does the BiLSTM's F1 macro on the PortScan class exceed XGBoost's by ≥ 0.05 on CICIDS-2017?" is testable.
+- **Choosing metrics without justification**: Don't just use accuracy. Justify every metric: "We use F1 Macro because CICIDS-2017 has 83% BENIGN events — accuracy would be misleadingly high."
+- **Defining CDS weights arbitrarily**: Document WHY 0.40/0.35/0.25 (F1 > latency > memory). Security analysts prioritise detection over speed. This is the justification.
 
 #### Subphase 1.1 — Core Research Statement
 
@@ -58,11 +133,32 @@
 > **📦 Stack:** YAML, Optuna 3.x, scikit-learn 1.4
 > **✅ Outcome:** Six YAML config files, one per model family, that the training scripts load directly. Changing a search space requires editing only the YAML.
 
+
+### ✅ Learning Checkpoint — Phase 1 (Research Design)
+Before moving to Phase 2, answer these questions:
+1. Write your research paper's hypothesis H₁ for RQ1 (classical ML vs deep learning) in one sentence. What metric will you use to test it?
+2. The CDS formula is `CDS = 0.40×norm(F1) + 0.35×norm(1/latency_p99) + 0.25×norm(1/memory_mb)`. Why is F1 weighted highest? What would change if you set latency weight to 0.50?
+3. Why is McNemar's test used for model comparison instead of a simple t-test on F1 scores?
+
+
 ---
 
 ## Phase 2 — Project Charter & Scope
 
 **Context:** Prevent scope creep across 63 phases by defining explicit boundaries, success criteria, and shared vocabulary before any code is written.
+
+
+### 🎓 What You Will Learn in Phase 2
+Project governance might seem like overhead for a student project, but it teaches you a critical research skill: **documenting your decisions so you can defend them in a paper**. Every ADR (Architecture Decision Record) you write is a paragraph in your paper's Related Work or Methodology section explaining why you chose FastAPI over Flask, modular monolith over microservices, async over sync.
+
+### 📖 Concept: Architecture Decision Records (ADRs)
+An ADR documents: the context you were in, the decision you made, and why you rejected the alternatives. When a paper reviewer asks "Why did you use a modular monolith instead of microservices?", your ADR-001 gives you the exact answer:
+- Context: A 63-phase student project with a single developer
+- Decision: Modular monolith (one deployable unit with enforced module boundaries)
+- Alternatives rejected: Microservices (too much operational overhead for a research project)
+- Consequences: Simpler deployment, single failure domain
+
+**In your paper:** "We chose a modular monolith architecture (ADR-001) over microservices to reduce operational complexity. Module boundaries are enforced by import rules, not network boundaries."
 
 #### Subphase 2.1 — Project Charter
 
@@ -109,6 +205,19 @@
 ## Phase 3 — Monorepo & Developer Environment
 
 **Context:** Any developer clones the repo and is fully productive in under 10 minutes. Environment setup is automated, reproducible, and enforced by tooling.
+
+
+### 🎓 What You Will Learn in Phase 3
+Reproducibility is a core scientific requirement. A paper where "I ran the experiments on my laptop" cannot be reproduced by reviewers. DVC + MLflow + pinned dependencies + pre-commit hooks make your experiments reproducible by anyone with a GPU and internet access.
+
+### 📄 Research Paper Connection
+Phase 3 → **§4.1 Experimental Setup**: "All experiments were run in a reproducible environment defined by `environment.yml` (exact package versions). Code is available at [GitHub URL]. Data pipelines are tracked with DVC version X. All random seeds are fixed at 42."
+
+### 📖 Concept: Why DVC + MLflow Together?
+- **DVC (Data Version Control):** Tracks changes to LARGE DATA FILES (datasets, preprocessed features, model artifacts) using git-like commits. `dvc pull` retrieves the exact dataset version used in any experiment. Without DVC, you cannot guarantee that "experiment run 2 used the same CICIDS-2017 preprocessing as run 1."
+- **MLflow:** Tracks EXPERIMENT METADATA (hyperparameters, metrics, plots, model objects). `mlflow.log_metric("f1_macro", 0.941)` records what happened in a run. Without MLflow, you cannot reproduce "Table 4 uses the best XGBoost model from run_id=a3f82b..."
+
+Together: DVC tells you WHAT DATA was used. MLflow tells you WHAT HAPPENED to it.
 
 #### Subphase 3.1 — Monorepo Workspace Configuration
 
@@ -164,6 +273,19 @@
 
 **Context:** Stand up all local development infrastructure as code so every developer has an identical environment that mirrors production.
 
+
+### 🎓 What You Will Learn in Phase 4
+Docker Compose gives you a local production-equivalent stack (PostgreSQL + Redis + MLflow + MinIO) running in isolated containers with one command: `docker compose up -d`. You will learn: how containers communicate (service names as hostnames), how environment variables pass into containers, and why health checks matter.
+
+### 📖 Concept: Why All These Services?
+| Service | Purpose in XAI-Guard |
+|---------|----------------------|
+| **PostgreSQL** | Stores: SecurityEvents, Predictions, XAIExplanations, ModelVersions, Alerts, AuditLogs |
+| **Redis** | Event deduplication hashes, feature cache, pub/sub for drift alerts, Celery task queue |
+| **MLflow** | Tracks all 6 model training runs, hyperparameter tuning results, evaluation metrics |
+| **MinIO** | Stores model artifacts (XGBoost `.ubj` files, PyTorch `.pt` checkpoints, joblib pipelines) |
+| **Celery** | Runs SHAP explanation generation asynchronously (takes 1–5 seconds per prediction) |
+
 #### Subphase 4.1 — Docker Compose Local Stack
 
 > **🎭 Role:** Senior DevOps Engineer and Platform Architect
@@ -201,6 +323,22 @@
 ## Phase 5 — Database Schema & ORM Layer
 
 **Context:** Define the complete data model as SQLAlchemy 2 async ORM models with full type annotations. All eight backend modules use these shared models.
+
+
+### 🎓 What You Will Learn in Phase 5
+Database schema design is where you learn to think in terms of data relationships. The XAI-Guard schema captures the entire research lifecycle: raw events → predictions → explanations → alerts → model versions → audit logs. Every table you design here corresponds to a concept in your paper.
+
+### 📖 Concept: Why SQLAlchemy Async?
+Standard SQLAlchemy uses synchronous I/O — the web server thread waits while the database responds. FastAPI is async — it uses Python's `asyncio` event loop to handle many concurrent requests with few threads. If you block an async thread with synchronous DB calls, the whole server freezes. SQLAlchemy 2.0 with `asyncpg` gives you truly non-blocking database I/O:
+
+```python
+# Sync (wrong for FastAPI):
+user = session.query(User).filter_by(id=user_id).first()  # blocks the event loop
+
+# Async (correct):
+result = await session.execute(select(User).where(User.id == user_id))
+user = result.scalar_one_or_none()  # doesn't block
+```
 
 #### Subphase 5.1 — ORM Base Configuration
 

@@ -244,3 +244,67 @@ Every model is evaluated on exactly the same three pillars:
 ---
 
 *Good luck. This project is ambitious — but every phase is designed to be completable step by step. The most important thing is to understand each concept before moving on. Use the Learning Checkpoints honestly.*
+
+
+---
+
+## 🔬 ML-First Reading Order (Research Paper Priority)
+
+If your goal is to publish a research paper as fast as possible, follow this order:
+
+### Critical Path to First Paper Draft
+
+```
+Phase 1  → Define 8 Research Questions + 3-Pillar Framework (WRITE PAPER ABSTRACT NOW)
+Phase 9–17 → Data Engineering (WRITE Paper §3.1 Datasets as you go)
+Phase 18–25 → Feature Engineering + Phase 22B Ablation (WRITE Paper §3.2 Features)
+Phase 26–32 → Classical ML + Sequence Models (WRITE Paper §4.2 Baselines, §4.3 Results rows)
+Phase 33–39 → Transformer + Statistical Tests (COMPLETE Paper §4.3 + §5 Statistics)
+Phase 32.3 → Write Research Findings Template (DRAFT all findings paragraphs)
+Phase 38.4 → Write Statistical Results section (COMPLETE §5)
+Phase 63.3 → Assemble and polish full paper
+```
+
+**You can submit a paper after Phase 39.** The backend (Phases 40–63) demonstrates system deployment — valuable for §6 but not required for the core experimental results.
+
+### New Research Subphases Added Specifically for Your Paper
+
+| Subphase | Doc | What It Gives You | Paper Section |
+|----------|-----|-------------------|---------------|
+| **9.6** | 02 | Train/Val/Test split strategy documented | §3.1 Data Splits |
+| **22B** (3 parts) | 03 | Feature ablation study tables | §4.2 Ablation |
+| **32.3** | 04 | Research findings writing template | §4.3 Results paragraphs |
+| **32.4** | 04 | Cross-dataset transfer evaluation | §4.5 Table 7 |
+| **38.3** | 05 | Cohen's d + Cliff's delta effect sizes | §5 Statistical Analysis |
+| **38.4** | 05 | Complete §5 draft from a template | §5 Statistical Analysis |
+| **39.4** | 05 | LIME vs SHAP correlation analysis | §4.4 Table 8 |
+| **39.5** | 05 | Analyst Utility Composite Score (Pillar 2) | §4.4 Table 9 |
+| **45.4** | 06 | Writing temporal robustness results | §4.5 Table 5 |
+| **63.3** | 08 | Full paper writing guide with templates | All sections |
+| **63.5** | 08 | Supplementary materials checklist | Appendix |
+| **63.6** | 08 | Venue selection guide (Tier 1/2/3) | — |
+
+### What Sections Each Phase Produces
+
+```
+Abstract          ← Phase 1.1 (research statement) + Phase 37 (champion selection finding)
+§1 Introduction   ← Phase 1.1 + 1.2 (8 RQs)
+§2 Related Work   ← Phase 1.4 (dataset justification) — write during Phase 9
+§3.1 Datasets     ← Phases 9–17 (write as you build)
+§3.2 Features     ← Phases 18–25 (write as you build)
+§3.3 Models       ← Phases 26–36 (architecture descriptions from phase prompts)
+§3.4 Eval Method  ← Phase 1.3 (3-pillar framework + CDS formula)
+§4.1 Setup        ← Phase 3 (environment) + Phase 31 (hardware used)
+§4.2 Ablation     ← Phase 22B (ablation tables)
+§4.3 Results      ← Phase 37.1 (master table = Table 4) + Phase 32.3 (findings text)
+§4.4 XAI          ← Phases 39–43 (SHAP + LIME + Attention + AUS)
+§4.5 Robustness   ← Phase 45.4 (drift writing template)
+§5 Statistics     ← Phase 38.4 (complete §5 from template)
+§6 System         ← Phases 46–55 (production system description)
+§7 Discussion     ← Phase 37.3 (champion justification) + answer each RQ
+§8 Conclusion     ← Last — write after all above complete
+References        ← Accumulate throughout all phases
+```
+
+---
+

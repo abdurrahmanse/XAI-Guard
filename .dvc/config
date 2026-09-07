@@ -1,7 +1,0 @@
-[core]
-    remote = minio
-['remote "minio"']
-    url = s3://xai-guard-data
-    endpointurl = http://localhost:9000
-    access_key_id = minioadmin
-    secret_access_key = minioadmin

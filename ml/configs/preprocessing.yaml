@@ -1,7 +1,0 @@
-# Placeholder preprocessing configuration
-encoding:
-  method: "one_hot"
-  target_scaling: "standard"
-imputation:
-  numeric: "mean"
-  categorical: "mode"

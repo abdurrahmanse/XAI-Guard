@@ -10,7 +10,6 @@ Every phase in this document produces a specific artefact that maps directly to 
 |-------|---------------|---------------|----------------|
 | P9 | Download + validate 4 datasets | §3 Datasets | Table 1: Dataset Statistics |
 | P10 | NSL-KDD EDA | §3.1 NSL-KDD | Fig 1a: Class Distribution |
-| P11 | CICIDS-2017 EDA | §3.2 CICIDS-2017 | Fig 1b, Table 1 Row 2 |
 | P12 | UNSW-NB15 EDA | §3.3 UNSW-NB15 | Fig 1c, EMD ranking table |
 | P13 | BETH EDA | §3.4 BETH | Fig 1d, drift windows |
 | P14 | Cross-dataset schema | §3.5 Unified Schema | Table 2: Feature Schema |
@@ -29,17 +28,12 @@ Every phase in this document produces a specific artefact that maps directly to 
 **Context:** Establish the data foundation before any analysis. Incorrect or corrupted data invalidates all downstream experiments.
 
 ### 🎓 What You Will Learn in Phase 9
-You will learn how to acquire research datasets safely and reproducibly using SHA-256 checksums, and how to version them with DVC so any researcher can reproduce your exact data state from a git tag alone. This is the foundation of your paper's reproducibility claim.
 
-### 📖 Concept: Data Versioning with DVC
-In research, your model results are only credible if anyone can reproduce them starting from the same data. DVC (Data Version Control) solves this: it stores large data files remotely (in MinIO/S3) and keeps tiny pointer files (`.dvc`) in git. When you tag a commit `data-v1.0`, any collaborator can run `git checkout data-v1.0 && dvc pull` to get the exact data you used — byte for byte.
 
 This is equivalent to citing the exact URL and checksum of a dataset in your paper's footnote, but enforced programmatically. It eliminates the classic reproducibility failure: "I can't reproduce your results because the download URL changed."
 
 ### ⚠️ Common Mistakes — Dataset Acquisition
 - **Not verifying checksums**: If the download is corrupted or the dataset was updated, your results will differ from the literature. Always verify SHA-256.
-- **Committing data files to git**: Large files in git history corrupt the repository. Use `.gitignore` + DVC tracking.
-- **Using different dataset versions across experiments**: If you accidentally mix dataset versions between model runs, your comparison table is invalid. DVC tags prevent this.
 
 
 
@@ -47,22 +41,11 @@ This is equivalent to citing the exact URL and checksum of a dataset in your pap
 
 > **🎭 Role:** Senior Data Engineer and ML Research Infrastructure Engineer
 > **📍 Context:** The XAI-Guard evaluation framework (Phase 1) requires four benchmark datasets. Nothing has been downloaded yet. All ML experiments depend on exactly these versions of these datasets.
-> **🔧 Task:** Write an automated dataset acquisition script using `httpx` for async HTTP downloads with progress bars via `rich.progress`. For each dataset (NSL-KDD, CICIDS-2017, UNSW-NB15, BETH): download from the official source URL, verify the SHA-256 checksum against the documented value (fail loudly if mismatch), extract the archive if compressed, log the file size and row count to MLflow as data provenance tags. Make the script idempotent: skip already-downloaded and verified files. Use `typer` for the CLI interface with a `--dataset` filter flag.
 > **📦 Stack:** httpx, rich, typer, mlflow 2.x, hashlib (stdlib)
-> **✅ Outcome:** `uv run python ml/scripts/download_datasets.py` downloads all four datasets. Re-running it skips already-verified files. MLflow shows data provenance tags for the run.
 
-#### Subphase 9.2 — DVC Initialisation & Remote Configuration
 
-> **🎭 Role:** MLOps Engineer with DVC and S3-compatible storage expertise
-> **📍 Context:** Datasets are downloaded. They must immediately be placed under DVC version control so all future experiments reference a specific, reproducible data version. MinIO is the DVC remote (configured in Phase 4).
-> **🔧 Task:** Initialise DVC in the `ml/` directory. Configure the DVC remote to use the MinIO S3-compatible endpoint with credentials from the environment. Add all four raw dataset directories to DVC tracking with `dvc add`. Run `dvc push` to upload to MinIO. Commit the DVC pointer files (`.dvc` files and `.dvcignore`) to git. Tag the commit as `data-v1.0`. Verify reproducibility: delete the local data, run `dvc pull`, confirm byte-identical files.
-> **📦 Stack:** dvc[s3] 3.51, boto3 (used by DVC internally), MinIO
-> **✅ Outcome:** `git checkout data-v1.0 && dvc pull` reproduces the exact data state on any machine with DVC remote access. `dvc status` shows no changes.
 
-#### Subphase 9.3 — DVC Pipeline Stage Definitions
 
-> **🎭 Role:** MLOps Pipeline Architect
-> **📍 Context:** DVC version controls data. Now define the full processing pipeline as DVC stages so every output is reproducible and only re-runs when its inputs change.
 > **🔧 Task:** Write `ml/dvc.yaml` defining pipeline stages with explicit `deps`, `outs`, `params`, and `metrics` declarations: `download` stage (deps: download script; outs: raw/ directories); `clean` stage (deps: raw/ + cleaning script; outs: interim/; metrics: cleaning_report.json); `encode` stage (deps: interim/ + encoding script; outs: processed/; params: ml/configs/preprocessing.yaml); `features` stage (deps: processed/ + feature engineering scripts; outs: features/); `select` stage (deps: features/ + selection config; outs: selected/); `split` stage (deps: selected/; outs: splits/train, splits/val, splits/test). Configure `dvc params` to track all hyperparameters from YAML configs.
 > **📦 Stack:** dvc[s3] 3.51, PyYAML
 > **✅ Outcome:** `dvc repro` runs the full pipeline from scratch. Modifying `ml/configs/preprocessing.yaml` causes only the `encode` stage and its descendants to re-run. `dvc dag` shows the correct pipeline graph.
@@ -70,16 +53,12 @@ This is equivalent to citing the exact URL and checksum of a dataset in your pap
 #### Subphase 9.4 — Data Validation Schema
 
 > **🎭 Role:** Data Quality Engineer
-> **📍 Context:** Raw datasets have known quality issues: CICIDS-2017 has infinite values, NSL-KDD has label inconsistencies, UNSW-NB15 has schema differences across partition files. A validation schema catches regressions.
-> **🔧 Task:** Write a data validation module using `pandera` that runs immediately after download. Define a `DatasetSchema` for each of the four datasets specifying: required columns with data types, valid value ranges for numeric features (e.g., packet count >= 0), allowed categorical values for label columns, null rate threshold per column, and duplicate row threshold. The validator runs as the first DVC stage and produces a `validation_report.json` artifact logged to MLflow. It fails the pipeline if any critical check fails.
-> **📦 Stack:** pandera 0.19, pandas 2.x, mlflow 2.x
 > **✅ Outcome:** `uv run python ml/src/data/validate.py --dataset cicids2017` produces a validation report. A corrupted dataset causes a clear, actionable error message that identifies the failing column and check.
 
 #### Subphase 9.5 — Data Directory Structure & Gitignore
 
 > **🎭 Role:** ML Infrastructure Engineer
 > **📍 Context:** A clean, documented directory structure prevents data files from being committed to git and ensures all pipeline stages write outputs to the correct location.
-> **🔧 Task:** Define and document the complete `ml/data/` directory structure: `raw/{dataset_name}/` (DVC-tracked, git-ignored), `interim/{dataset_name}/` (DVC-tracked, after cleaning), `processed/{dataset_name}/` (DVC-tracked, after encoding), `features/` (DVC-tracked, engineered features), `splits/{train,val,test}/` (DVC-tracked, final splits). Write `ml/data/.gitignore` excluding all data files. Write `ml/data/README.md` documenting each directory's purpose, the DVC command to access it, and which pipeline stage produces it. Create a `DataPaths` configuration class using `pydantic-settings` that resolves all paths from a configurable base directory.
 > **📦 Stack:** pydantic-settings, pathlib (stdlib)
 > **✅ Outcome:** `DataPaths().raw_dir / "cicids2017"` resolves to the correct path. `git status` shows no data files. `dvc pull` populates all directories.
 
@@ -91,7 +70,6 @@ This is equivalent to citing the exact URL and checksum of a dataset in your pap
 > **📍 Context:** Each dataset requires a different split strategy because they have different statistical properties. Using a random split on BETH would allow future data to leak into the past, making your drift evaluation artificially optimistic. Using the official NSL-KDD split is required to compare fairly with published baselines.
 > **🔧 Task:** Document and implement the split strategy for each dataset in `ml/configs/split_strategy.yaml`:
 > - **NSL-KDD:** Use the official `KDDTrain+.txt` / `KDDTest+.txt` split. Do NOT re-split. This is required to compare with published NSL-KDD baselines.
-> - **CICIDS-2017:** Stratified random split: 70% train / 15% validation / 15% test. Seed = 42. Stratify on the unified taxonomy label to preserve class ratios.
 > - **UNSW-NB15:** Stratified random split: 70/15/15. Seed = 42. The official train/test split is unusable (test set has a different label distribution than documented).
 > - **BETH:** **Temporal split** — train = first 70% of events by `timestamp`, val = next 15%, test = last 15%. Sort by timestamp BEFORE splitting. This prevents future knowledge from leaking into the past.
 >
@@ -128,9 +106,7 @@ This is equivalent to citing the exact URL and checksum of a dataset in your pap
 
 ### ✅ Learning Checkpoint — Phase 9
 Before moving to EDA, answer these:
-1. What is the difference between the NSL-KDD and CICIDS-2017 split strategies, and why do they differ?
 2. Why must SMOTE be applied AFTER splitting, not before? What would happen to your test F1 if you applied it before?
-3. You notice your SHA-256 verification fails for CICIDS-2017. What are the two most likely causes?
 
 ---
 
@@ -170,9 +146,7 @@ JS divergence is bounded [0, 1] (when using log base 2), making it easy to inter
 
 > **🎭 Role:** Senior Data Scientist with IDS benchmark expertise
 > **📍 Context:** NSL-KDD datasets are downloaded and validated. This EDA notebook is the first human-readable analysis of the data and informs all preprocessing decisions.
-> **🔧 Task:** Create `ml/notebooks/eda/01_nslkdd_eda.ipynb`. Load KDDTrain+ and KDDTest+ using pandas with explicit dtype specification. Generate a full ydata-profiling HTML report and save as an artifact. Compute and display: dataset shape, schema with dtypes, null counts per column, duplicate row count, memory usage. Use `rich` tables for clean console output. Log the profile report path to MLflow as a run artifact.
 > **📦 Stack:** pandas 2.x, ydata-profiling, rich, mlflow 2.x
-> **✅ Outcome:** The notebook runs end-to-end without errors. The profiling report HTML file is committed as a git-tracked artifact. MLflow shows the artifact link.
 
 #### Subphase 10.2 — Class Distribution & Train/Test Mismatch Analysis
 
@@ -200,12 +174,9 @@ JS divergence is bounded [0, 1] (when using log base 2), making it easy to inter
 
 ---
 
-## Phase 11 — CICIDS-2017 Exploratory Data Analysis
 
-**Context:** CICIDS-2017 is the primary training dataset — the most realistic and the most challenging due to severe class imbalance and data quality issues that must be fully understood before training.
 
 ### 🎓 What You Will Learn in Phase 11
-CICIDS-2017 is your main training dataset and the hardest to work with. You will learn: how to load multi-file datasets with inconsistent schemas, how to quantify class imbalance severity, and how to perform a temporal pattern analysis that will later drive your drift simulation. These are core competencies for any ML researcher working with real-world network data.
 
 ### 📄 Research Paper Connection
 - Subphase 11.2 → **Figure 1b**: Class imbalance bar chart (log scale)
@@ -213,7 +184,6 @@ CICIDS-2017 is your main training dataset and the hardest to work with. You will
 - Subphase 11.5 → **Table 2 footnote**: Feature reduction from 78 → ~55 features
 
 ### 📖 Concept: Class Imbalance in Security Datasets
-In CICIDS-2017, BENIGN traffic makes up ~83% of all records. If you train a model without handling this, it will learn: "predict BENIGN for everything" → achieves 83% accuracy but 0% recall on attacks.
 
 Two main strategies:
 1. **SMOTE (Synthetic Minority Over-sampling Technique)**: Generates synthetic minority-class samples by interpolating between real samples in feature space. Adds training data — the model sees more attack examples.
@@ -222,7 +192,6 @@ Two main strategies:
 **Research implication:** You must report WHICH strategy you used and test both. Your paper's §4.1 should compare F1 with and without class balancing to justify your choice.
 
 ### ⚠️ Common Mistakes — Multi-file Loading
-- **Column name whitespace**: CICIDS-2017 has a column named ` Destination Port` (with a leading space). Always strip whitespace from column names immediately after loading.
 - **Mixing capture days without a `day` column**: Without tracking which CSV file each row came from, you cannot do the temporal analysis in Subphase 11.4.
 - **Using pandas default dtype inference on large files**: Specify `dtype` explicitly for large files to avoid silent integer overflow.
 
@@ -230,31 +199,24 @@ Two main strategies:
 
 
 > **🎭 Role:** Senior Data Engineer
-> **📍 Context:** CICIDS-2017 is distributed across 8 daily capture CSV files with inconsistent column names and header formats. Loading it correctly is non-trivial.
-> **🔧 Task:** Create `ml/notebooks/eda/02_cicids2017_eda.ipynb`. Write a robust multi-file loader that: standardises column names (strip whitespace, lowercase, replace spaces with underscores), handles the header inconsistency across files, concatenates with a `capture_day` column added, detects and counts all infinite values (replace with NaN for profiling), handles negative values in non-negative feature columns. Generate a ydata-profiling minimal report (not full, for speed). Log the combined dataset shape and null counts to MLflow.
 > **📦 Stack:** pandas 2.x, numpy, ydata-profiling, mlflow 2.x
 > **✅ Outcome:** The notebook loads all 8 files into a single 2.8M-row DataFrame without errors. Column names are consistent. Infinite value counts are reported per column.
 
 #### Subphase 11.2 — Class Imbalance Severity Analysis
 
 > **🎭 Role:** Senior Data Scientist specialising in imbalanced learning
-> **📍 Context:** CICIDS-2017 has extreme class imbalance: BENIGN traffic accounts for 83% of samples. Models trained naively optimise accuracy by predicting BENIGN, producing near-zero recall on rare attack classes.
-> **🔧 Task:** Extend the CICIDS-2017 notebook with a class imbalance analysis. Compute: class distribution as percentage table, imbalance ratio (majority count / each minority count), and required SMOTE oversampling ratios to reach 10:1 maximum imbalance. Plot the distribution on both linear and log-10 scales side by side. Identify the two most severely underrepresented attack classes. Document the target class distribution after resampling as `target_distribution: dict[str, float]` in `ml/configs/cicids2017_eda_findings.yaml`.
 > **📦 Stack:** pandas, matplotlib, imbalanced-learn 0.12
 > **✅ Outcome:** The imbalance analysis plot is saved as `ml/notebooks/figures/cicids2017_class_imbalance.png`. The target distribution is documented for the resampling phase.
 
 #### Subphase 11.3 — Data Quality Investigation
 
 > **🎭 Role:** Data Quality Engineer
-> **📍 Context:** CICIDS-2017 is known to contain features with infinite values, negative values in non-negative feature columns, and near-zero variance features. These must be catalogued before cleaning.
-> **🔧 Task:** Extend the notebook with a data quality section. For each column compute: count of +inf, count of -inf, count of NaN, count of negative values where the feature is inherently non-negative (packet counts, byte counts, durations). Identify constant columns (single unique value). Flag all columns exceeding the pandera thresholds from Phase 9. Document all issues in `ml/configs/cicids2017_eda_findings.yaml` with the recommended fix (clip, replace, drop, impute). Save a quality report CSV with one row per column and columns for each issue type.
 > **📦 Stack:** pandas, numpy
 > **✅ Outcome:** The quality report CSV is committed. The YAML findings file contains a `data_quality_issues` key consumed by the cleaning pipeline.
 
 #### Subphase 11.4 — Temporal Pattern Analysis
 
 > **🎭 Role:** Senior Data Scientist
-> **📍 Context:** CICIDS-2017 spans five capture days with different attack types on each day. This temporal structure is used to simulate data drift in Phase 45 and must be characterised now.
 > **🔧 Task:** Extend the notebook with temporal analysis. Group by `capture_day` and compute: event count per day, attack type distribution per day, mean values of key features per day. Plot a stacked bar chart of attack type counts per capture day. Compute the Jensen-Shannon divergence between each pair of consecutive days' feature distributions. Identify the day pair with the largest distribution shift — this becomes the drift simulation split point. Save the split point as `temporal_drift_split_day` in the EDA findings YAML.
 > **📦 Stack:** pandas, matplotlib, scipy
 > **✅ Outcome:** The temporal analysis figure is saved. The drift split point is documented for Phase 45.
@@ -262,7 +224,6 @@ Two main strategies:
 #### Subphase 11.5 — Feature Multicollinearity & Selection Candidates
 
 > **🎭 Role:** Feature Engineering Lead
-> **📍 Context:** CICIDS-2017 has 78 features, many of which are linear combinations of the same underlying network statistics. Reducing to a non-redundant set improves model generalisation and SHAP explanation quality.
 > **🔧 Task:** Extend the notebook with multicollinearity analysis. Compute the Pearson correlation matrix for all 78 numeric features. Identify correlated clusters with |r| > 0.95. Within each cluster, retain the feature with the highest mutual information with the label and flag the rest for removal. Also identify near-zero variance features (variance < 0.01). Save the removal candidate list as `removal_candidates: list[str]` in `ml/configs/cicids2017_eda_findings.yaml`.
 > **📦 Stack:** pandas, seaborn, sklearn
 > **✅ Outcome:** The correlation heatmap with cluster annotations is saved as a figure. The removal candidates YAML key reduces the feature count by approximately 20–25 features.
@@ -271,7 +232,6 @@ Two main strategies:
 
 ## Phase 12 — UNSW-NB15 Exploratory Data Analysis
 
-**Context:** UNSW-NB15 provides nine modern attack categories. It tests whether models trained on CICIDS-2017 generalise to a different attack taxonomy with different network characteristics.
 
 ### 🎓 What You Will Learn in Phase 12
 UNSW-NB15 tests whether your models generalise to a different attack taxonomy. You will learn: cross-dataset taxonomy mapping (translating different label vocabularies to a unified schema), the Earth Mover's Distance (EMD/Wasserstein distance) as a feature separability metric, and how to produce a cross-dataset comparison table for your paper.
@@ -296,7 +256,6 @@ Formula (for 1D discrete distributions): `W1(P, Q) = sum(|CDF_P(x) - CDF_Q(x)|)`
 
 > **🎭 Role:** Senior Data Engineer
 > **📍 Context:** UNSW-NB15 is split across four CSV partition files plus a separate ground-truth labels file. The merge requires careful key alignment.
-> **🔧 Task:** Create `ml/notebooks/eda/03_unswnb15_eda.ipynb`. Write a loader that reads all four partition CSV files, loads the ground-truth labels file, merges on the correct key columns, validates the merge produced no NaN labels, and adds a `split` column indicating the official train/test partition assignment. Generate a profiling report. Log dataset characteristics to MLflow.
 > **📦 Stack:** pandas, ydata-profiling, mlflow
 > **✅ Outcome:** The notebook produces a single unified DataFrame with all features and correct labels. The merge key alignment is validated with an assertion.
 
@@ -311,7 +270,6 @@ Formula (for 1D discrete distributions): `W1(P, Q) = sum(|CDF_P(x) - CDF_Q(x)|)`
 #### Subphase 12.3 — Feature Distribution & Near-Zero Variance
 
 > **🎭 Role:** Senior Data Scientist
-> **📍 Context:** UNSW-NB15 features have different statistical properties from CICIDS-2017. Understanding their distributions guides scaler selection and identifies low-information features.
 > **🔧 Task:** Extend the notebook. For each of the 49 features: compute variance, mean, skewness, kurtosis. Flag features with variance < 0.01 as near-constant. For the top 10 highest-variance features, plot the distribution separately for benign and malicious classes to visualise separability. Compute the Earth Mover's Distance (Wasserstein-1) between benign and malicious distributions per feature. Rank features by EMD (higher = more separable). Save the EMD ranking as `emd_feature_ranking: list[str]` in `ml/configs/unswnb15_eda_findings.yaml`.
 > **📦 Stack:** pandas, scipy, matplotlib, numpy
 > **✅ Outcome:** The EMD ranking is saved. The top 10 separability plots are saved as figure files referenced in the research paper.
@@ -322,7 +280,6 @@ Formula (for 1D discrete distributions): `W1(P, Q) = sum(|CDF_P(x) - CDF_Q(x)|)`
 > **📍 Context:** UNSW-NB15 EDA findings feed Phase 14 (cross-dataset schema mapping). A comparison table stub makes Phase 14 straightforward.
 > **🔧 Task:** Add a final section to the UNSW-NB15 notebook that produces: (1) `ml/configs/unswnb15_eda_findings.yaml` with null_columns, near_zero_variance_features, emd_feature_ranking, low_resource_classes, taxonomy_mapping path; (2) A cross-dataset comparison table stub as a pandas DataFrame comparing NSL-KDD and UNSW-NB15 on: record count, feature count, null rate %, duplicate rate %, class count, and primary preprocessing challenge. Save as CSV for Phase 14 to extend.
 > **📦 Stack:** pandas, PyYAML
-> **✅ Outcome:** Both the YAML and the comparison table CSV exist. Phase 14 can load the CSV and append CICIDS-2017 and BETH rows.
 
 ---
 
@@ -419,13 +376,11 @@ Your `unified_schema.yaml` makes this decision explicit and auditable. Any revie
 > **📍 Context:** Each dataset uses different column names and sometimes combines what should be separate features. The mapping configs make the preprocessing pipeline generic.
 > **🔧 Task:** Create four YAML mapping files, one per dataset: `ml/configs/mappings/{dataset}_column_mapping.yaml`. Each file maps `{native_column_name}: {unified_schema_name}` with an optional `transform` key for computed fields (e.g., `"bytes_per_packet": {"formula": "total_bytes / packet_count"}`). Document columns that are dropped (not mapped). Include data type coercion rules. Write a unit test that applies each mapping config to a 10-row fixture DataFrame and validates the output against the unified schema.
 > **📦 Stack:** PyYAML, pandas, pytest
-> **┅ Outcome:** The four mapping YAML files exist. The mapping unit tests pass. Any change to a mapping is caught by CI.
 
 #### Subphase 14.3 — Unified Statistics Summary
 
 > **🎭 Role:** ML Research Lead
 > **📍 Context:** The research paper's methodology section requires a dataset comparison table. Generate it automatically from the EDA findings YAML files so it stays in sync.
-> **🔧 Task:** Write `ml/notebooks/eda/05_cross_dataset_summary.ipynb`. Load all four EDA findings YAML files and produce: (1) a pandas DataFrame comparison table with columns for each dataset and rows for: record count, feature count after mapping, null rate %, duplicate rate %, class count after taxonomy mapping, imbalance ratio, and primary challenge; (2) export the table as Markdown (for the research paper) and as a styled HTML table; (3) log the Markdown table to MLflow as a run note.
 > **📦 Stack:** pandas, tabulate, mlflow
 > **┅ Outcome:** The Markdown table can be pasted directly into the research paper's methodology section without manual editing.
 
@@ -433,8 +388,6 @@ Your `unified_schema.yaml` makes this decision explicit and auditable. Any revie
 
 > **🎭 Role:** Senior Test Engineer
 > **📍 Context:** The column mapping is a critical transformation. Errors here silently corrupt every downstream experiment. A comprehensive test suite catches regressions.
-> **🔧 Task:** Write `ml/tests/test_schema_mapping.py` using pytest. Use `factory-boy` factories to generate synthetic DataFrames matching each dataset's raw schema. For each dataset: test that applying the column mapping produces a DataFrame matching the unified schema exactly; test that the label mapping produces valid taxonomy enum integers; test that applying the mapping to a DataFrame with a new unknown column raises a clear ValueError; test that the mapping is idempotent (applying it twice produces the same result). All four dataset mapping tests must pass in CI.
-> **📦 Stack:** pytest, factory-boy, pandas, pandera
 > **┅ Outcome:** `uv run pytest ml/tests/test_schema_mapping.py -v` passes all tests. Adding a new column to a dataset's raw schema without updating the mapping file causes a test failure.
 
 ---
@@ -477,17 +430,13 @@ Data leakage is when information from your test set contaminates your training p
 
 > **🎭 Role:** Senior ML Engineer
 > **📍 Context:** Duplicate removal must be training-only. Outlier clipping preserves extreme attack values rather than removing them, because extreme network statistics are often genuine attack signals.
-> **🔧 Task:** Implement two more transformers in `cleaners.py`. `DuplicateRemover(subset: list[str] | None = None)` that removes exact duplicate rows only during `fit_transform` on training data; the `transform` method (applied to validation/test) is a no-op that logs a warning if duplicates are found. `IQROutlierClipper(multiplier: float = 1.5)` that computes per-column IQR on the training set, clips to [Q1 - k·IQR, Q3 + k·IQR] bounds, and fits those bounds for production reuse. Log the number of duplicates removed and the number of clipped values per column to MLflow.
 > **📦 Stack:** scikit-learn 1.5, numpy, pandas, mlflow
 > **┅ Outcome:** `DuplicateRemover().fit_transform(train_df)` removes duplicates. `DuplicateRemover().transform(test_df)` returns unchanged test data with a logged warning if duplicates found.
 
 #### Subphase 15.3 — Cleaning Pipeline Composition
 
 > **🎭 Role:** Senior ML Engineer
-> **📍 Context:** Individual transformers exist. Composing them into a single serialisable scikit-learn Pipeline object completes the cleaning stage and enables DVC caching.
-> **🔧 Task:** Compose all cleaning transformers into a single scikit-learn `Pipeline` object in `ml/src/preprocessing/cleaning_pipeline.py`. Pipeline order: DuplicateRemover → InfiniteValueReplacer → NegativeValueClipper → MissingValueImputer → IQROutlierClipper. Load the transformer configurations from the dataset's EDA findings YAML. Fit the pipeline on the training split only. Serialise the fitted pipeline using `joblib.dump` to `ml/artifacts/pipelines/cleaning_pipeline_{dataset}_{version}.pkl`. Log the serialised path, pipeline version, and all fitted parameters to MLflow as a run artifact.
 > **📦 Stack:** scikit-learn, joblib, mlflow, PyYAML
-> **┅ Outcome:** The fitted pipeline can be loaded with `joblib.load` and correctly transforms new data. The MLflow run artifact shows the pipeline file.
 
 #### Subphase 15.4 — Cleaning Pipeline Test Suite
 
@@ -526,15 +475,12 @@ RobustScaler normalises using `(x - median) / IQR` (interquartile range). The me
 
 > **🎭 Role:** Senior ML Engineer
 > **📍 Context:** Network security data contains extreme outliers from attack traffic. Standard scaling is distorted by these outliers. RobustScaler is the correct choice and must be fitted on training data only.
-> **🔧 Task:** Implement `RobustFeatureScaler` in `encoders.py` wrapping `sklearn.preprocessing.RobustScaler`. The wrapper: validates that the scaler is fitted before transforming (raises `NotFittedError` otherwise), logs the median and IQR per feature to MLflow after fitting, implements `inverse_transform` for debugging, and includes an `exclude_columns` parameter for features that should not be scaled (e.g., binary indicator features). Write unit tests confirming the training set median maps to 0.0 after scaling.
 > **📦 Stack:** scikit-learn, mlflow, numpy
 > **┅ Outcome:** `RobustFeatureScaler().fit_transform(X_train)` produces a scaled matrix where the median of each column is approximately 0.0. Applying it to `X_test` uses the training medians.
 
 #### Subphase 16.3 — Full Preprocessing Pipeline
 
 > **🎭 Role:** Senior ML Engineer
-> **📍 Context:** Cleaning and encoding are separate pipeline stages in DVC. Within the Python code they are composed into a single ColumnTransformer for efficient application.
-> **🔧 Task:** Implement the full preprocessing pipeline in `ml/src/preprocessing/full_pipeline.py` using `sklearn.compose.ColumnTransformer`. The transformer applies: OrdinalEncoder to low-cardinality categoricals, HashEncoder to high-cardinality categoricals, RobustFeatureScaler to numeric features, passthrough for binary features. Chain it after the cleaning pipeline using sklearn `Pipeline`. Serialise the complete fitted pipeline to `ml/artifacts/pipelines/full_pipeline_{dataset}_{version}.pkl`. Log the output feature dimension, feature names list, and the artifact path to MLflow.
 > **📦 Stack:** scikit-learn, joblib, mlflow
 > **┅ Outcome:** The pipeline output is a 2D float32 NumPy array with `len(feature_names)` columns. The feature names list is stored as a pipeline attribute for SHAP explanation labels.
 
@@ -542,7 +488,6 @@ RobustScaler normalises using `(x - median) / IQR` (interquartile range). The me
 
 > **🎭 Role:** ML Research Engineer
 > **📍 Context:** The split strategy must prevent data leakage, be reproducible given the same seed, and handle the temporal ordering required for BETH.
-> **🔧 Task:** Implement `ml/src/preprocessing/splitter.py`. For NSL-KDD: use the official KDDTrain+/KDDTest+ split (not random). For CICIDS-2017 and UNSW-NB15: use stratified random split with ratio 70/15/15. For BETH: use temporal split (train=first 70% by timestamp, val=next 15%, test=last 15%) to prevent future leakage. Accept a `random_seed` parameter. Save splits as compressed NumPy arrays (`.npz`) to the DVC-tracked splits directory. Log split sizes and class distributions per split to MLflow.
 > **📦 Stack:** scikit-learn, numpy, mlflow
 > **┅ Outcome:** The BETH temporal split preserves chronological order. NSL-KDD uses the official split. All three splits are saved as `.npz` files.
 
@@ -552,7 +497,6 @@ RobustScaler normalises using `(x - median) / IQR` (interquartile range). The me
 > **📍 Context:** Encoding errors silently corrupt model training. Test coverage must be comprehensive.
 > **🔧 Task:** Write `ml/tests/test_encoding_pipeline.py`. Test: (1) Categorical encoding produces integer output for all categories seen during training; (2) An unseen category at inference time is handled gracefully (hash encoding) or raises a clear error (ordinal encoding, which must be caught and defaulted); (3) Numeric scaling applies training medians to test data; (4) The full pipeline output has no NaN values; (5) The pipeline is deterministic — same input produces identical output on repeated calls; (6) The BETH temporal split test set contains only timestamps after the validation set. Achieve ≥90% branch coverage.
 > **📦 Stack:** pytest, numpy, pandas, factory-boy
-> **┅ Outcome:** All encoding tests pass. The coverage threshold is enforced in CI.
 
 ---
 
@@ -580,7 +524,6 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 
 ### ✅ Learning Checkpoint — Phases 15–17
 1. You compute imputation medians on the full dataset before splitting. Which split (train, val, test) has leaked information into which other split?
-2. Your CICIDS-2017 BENIGN class has 1,500,000 samples and your rarest attack has 1,500. What SMOTE oversampling target ratio should you use to reach a 10:1 imbalance ratio?
 3. After running your cleaning pipeline, you check the test set and find some infinite values. Is this a bug? What should you do?
 
 #### Subphase 17.1 — Imbalance Severity Analysis Module
@@ -588,9 +531,7 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 
 > **🎭 Role:** Senior ML Engineer specialising in imbalanced learning
 > **📍 Context:** The imbalance ratio varies dramatically per dataset and per attack class. SMOTE parameters must be computed automatically from the measured ratios, not hardcoded.
-> **🔧 Task:** Implement `ml/src/preprocessing/imbalance.py`. `ImbalanceAnalyser` class: given a label array, computes per-class imbalance ratio (majority count / class count), identifies classes below the target ratio threshold, computes SMOTE oversampling targets to reach a configurable maximum imbalance ratio (default 10:1), and returns a `SamplingConfig` dataclass with `oversampling_targets: dict[int, int]`, `undersampling_target: int`, `minority_classes: list[int]`. Log the before/after class distribution to MLflow.
 > **📦 Stack:** imbalanced-learn 0.12, numpy, mlflow
-> **┅ Outcome:** `ImbalanceAnalyser(target_ratio=10).analyse(y_train)` returns a `SamplingConfig` with the correct targets. Logging shows the before/after class distribution in MLflow.
 
 #### Subphase 17.2 — SMOTE Oversampling
 
@@ -604,7 +545,6 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 
 > **🎭 Role:** Senior ML Engineer
 > **📍 Context:** SMOTE adds computational cost and creates synthetic samples. Class weights are simpler and work natively in scikit-learn and XGBoost. Both strategies are evaluated in the model comparison.
-> **🔧 Task:** Implement `ClassWeightCalculator` in `imbalance.py`. Compute class weights inversely proportional to class frequency: `weight_i = n_samples / (n_classes * count_i)`. Return a dict mapping class integer to weight, compatible with `sklearn`'s `class_weight` parameter and XGBoost's `scale_pos_weight`. Also compute the XGBoost `scale_pos_weight` for binary classification (sum of negative / sum of positive). Log all computed weights to MLflow.
 > **📦 Stack:** numpy, sklearn, mlflow
 > **┅ Outcome:** `ClassWeightCalculator().compute(y_train)` returns a dict. Passing this dict to `LogisticRegression(class_weight=weights)` is equivalent to manually upsampling minority classes.
 
@@ -620,9 +560,7 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 
 > **🎭 Role:** Senior Test Engineer
 > **📍 Context:** The full preprocessing pipeline (cleaning → encoding → splitting → resampling) must work end-to-end on real data before any model training begins.
-> **🔧 Task:** Write `ml/tests/test_preprocessing_integration.py` that runs the full preprocessing pipeline on a 1000-row sample of real CICIDS-2017 data (loaded from the DVC-tracked fixture dataset). Verify: (1) The pipeline completes without error; (2) The output feature matrix has the correct shape `(n_samples, n_features)`; (3) No NaN or infinite values in the output; (4) The label array contains only valid taxonomy integer values; (5) SMOTE increases the training set size; (6) The test set is untouched by resampling; (7) The fitted pipeline can be serialised and deserialised with joblib and produces identical output. Run this test as part of the CI ML pipeline workflow.
 > **📦 Stack:** pytest, joblib, numpy, pandas
-> **┅ Outcome:** The integration test passes in CI using the DVC fixture dataset. Any breaking change to the pipeline is caught before it reaches the training phase.
 
 ---
 
@@ -632,7 +570,6 @@ This creates samples BETWEEN existing minority-class points, rather than duplica
 |-------|-------|-----------|
 | P9 | Dataset Strategy & Acquisition | 5 |
 | P10 | NSL-KDD EDA | 4 |
-| P11 | CICIDS-2017 EDA | 5 |
 | P12 | UNSW-NB15 EDA | 4 |
 | P13 | BETH EDA | 4 |
 | P14 | Cross-Dataset Schema Mapping | 4 |

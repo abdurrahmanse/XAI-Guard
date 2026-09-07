@@ -1,0 +1,24 @@
+# Ignore everything in this directory
+*
+
+# Except for these files (so the directory structure is preserved in git)
+!.gitignore
+!README.md
+!raw/
+!interim/
+!processed/
+!features/
+!selected/
+!splits/
+
+# Explicitly ignore data files inside the subdirectories (DVC tracks them)
+raw/*
+interim/*
+processed/*
+features/*
+selected/*
+splits/*
+
+# Allow DVC pointer files and gitkeeps
+!**/*.dvc
+!**/.gitkeep

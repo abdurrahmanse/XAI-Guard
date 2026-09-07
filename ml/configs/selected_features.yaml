@@ -1,0 +1,15 @@
+dataset_version: v1.0
+feature_count: 1
+feature_names:
+- redundant_feat
+removed_by_correlation:
+- useful_feature
+removed_by_mi:
+- random_noise
+removed_by_variance:
+- constant_feature
+selection_date: '2024-03-15'
+stages_applied:
+- VarianceThreshold
+- MutualInformation
+- CorrelationRedundancy

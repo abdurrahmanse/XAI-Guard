@@ -136,3 +136,7 @@ $RECYCLE.BIN/
 .cursorrules
 .cursor/
 .fleet/
+
+# Runtime logs
+install.log
+*.log

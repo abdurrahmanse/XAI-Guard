@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../packages/ui";
 
 @theme {
   --color-severity-critical: var(--severity-critical);

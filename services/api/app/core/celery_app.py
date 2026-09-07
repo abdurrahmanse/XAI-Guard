@@ -20,6 +20,7 @@ celery_app.conf.update(
         'app.modules.explanations.tasks.*': {'queue': 'explanations'},
         'app.modules.drift.tasks.*': {'queue': 'pipeline'},
         'app.modules.registry.tasks.*': {'queue': 'pipeline'},
+        'app.modules.training.tasks.*': {'queue': 'pipeline'},
     },
     
     # Task scheduling (Beat)

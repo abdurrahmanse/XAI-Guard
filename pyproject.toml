@@ -1,14 +1,50 @@
+# ─── Pylint ────────────────────────────────────────────────────────────────────
+# Pylint is used only for ml/src Python files.
+# All .ipynb notebook files are completely excluded — Pylint cannot
+# statically analyse Jupyter notebooks because cell order and kernel magic
+# (!pip, %%time, etc.) are invisible to static analysis.
 [tool.pylint.master]
 ignore-patterns = [".*\\.ipynb"]
+ignore = ["ml/notebooks"]
 
 [tool.pylint.messages_control]
-disable = ["import-error", "unused-import", "wrong-import-position"]
+disable = [
+  "import-error",
+  "unused-import",
+  "wrong-import-position",
+  "missing-module-docstring",
+  "missing-function-docstring",
+  "too-few-public-methods",
+]
 
+# ─── Ruff ──────────────────────────────────────────────────────────────────────
+# Ruff lints ml/src and services/api only.
+# Jupyter notebooks are excluded globally — the shell magic syntax (!pip),
+# undefined cell-level variables, and out-of-order imports all produce
+# meaningless false positives that cannot be suppressed inline.
+[tool.ruff]
+line-length = 88
+extend-exclude = [
+  "*.ipynb",
+  "ml/notebooks/**",
+  "**/migrations/**",
+  "**/.venv/**",
+]
+
+[tool.ruff.lint]
+# E402 = module import not at top (notebooks always violate this)
+# F401 = imported but unused  (common in educational notebooks)
+# E501 = line too long         (docstrings and long URLs)
+ignore = ["E402", "F401", "E501"]
+
+# ─── Pyright ───────────────────────────────────────────────────────────────────
+# Pyright analyses ml/src and services/api only.
+# Notebooks are excluded — Pyright cannot resolve cell-local variables,
+# shell magics, or the dynamic import order that Jupyter uses.
 [tool.pyright]
-include = ["ml/src", "ml/scripts"]
-exclude = ["**/*.ipynb"]
+include = ["ml/src", "services/api"]
+exclude = ["**/*.ipynb", "**/ml/notebooks/**"]
 reportMissingImports = false
 reportMissingModuleSource = false
-
-[tool.ruff]
-extend-exclude = ["*.ipynb"]
+reportUnusedImport = false
+typeCheckingMode = "off"

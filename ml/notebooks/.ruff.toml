@@ -1,0 +1,15 @@
+# This file tells Ruff to exclude ALL notebooks in this directory.
+# Ruff uses the closest config file to the source — this file is the
+# authoritative override that prevents any parent config from linting notebooks.
+#
+# Reason: Jupyter notebooks use:
+#   - Shell magics:  !{sys.executable} -m pip install ...
+#   - Out-of-order imports across cells
+#   - Cell-local variables undefined in global scope
+# All of these produce meaningless false positives in static linters.
+
+extend-exclude = ["*.ipynb"]
+
+[lint]
+ignore = ["E402", "F401", "F811", "E501", "W291", "W293"]
+

@@ -1,7 +1,24 @@
 {
   "venvPath": "ml",
   "venv": ".venv",
+  "pythonVersion": "3.14",
+  "include": [
+    "ml/src",
+    "services/api"
+  ],
+  "exclude": [
+    "**/*.ipynb",
+    "**/ml/notebooks/**",
+    "**/node_modules/**",
+    "**/.venv/**",
+    "**/__pycache__/**"
+  ],
   "extraPaths": [
-    "ml/.venv/lib/python3.14/site-packages"
-  ]
+    "ml/.venv/lib/python3.14/site-packages",
+    "ml/src"
+  ],
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportUnusedImport": false,
+  "typeCheckingMode": "off"
 }

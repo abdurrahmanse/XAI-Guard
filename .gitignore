@@ -140,3 +140,6 @@ $RECYCLE.BIN/
 # Runtime logs
 install.log
 *.log
+*.npy
+*.npy
+*.pt

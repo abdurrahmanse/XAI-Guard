@@ -252,15 +252,98 @@
 > **📦 Stack:** AWS CLI, kubectl, Terraform, FastAPI
 > **✅ Outcome:** The runbook provides copy-paste CLI commands for every scenario. `X-Degraded-Mode: true` is set when the model is unavailable.
 
-#### Subphase 63.3 — Research Paper
+#### Subphase 63.3 — Research Paper Writing Guide
 
 > **🎭 Role:** Principal Research Scientist and Lead Author
-> **📍 Context:** The research paper is the primary academic output of the XAI-Guard project. It must be complete enough for submission to a workshop at IEEE S&P, USENIX Security, or a top ML venue.
-> **🔧 Task:** Write the XAI-Guard research paper in `docs/research-paper.md`. Sections: **Abstract** (250 words — problem, approach, key findings, implications); **1. Introduction** (problem motivation, 8 RQs, 4 contributions); **2. Related Work** (NSL-KDD/CICIDS-2017/UNSW-NB15/BETH benchmarks, SHAP/LIME/Attention Rollout XAI methods, prior IDS deep learning works); **3. Methodology** (all 6 model architectures, 4 datasets, 3-pillar framework, Champion/Challenger policy with formal gates); **4. Results** (master comparison table as Table 1, per-attack F1 heatmap as Figure 1, SHAP global summary as Figure 2, statistical significance matrix); **5. Discussion** (answer each of the 8 RQs with specific numerical results and p-values from the MLflow experiments); **6. Limitations** (threats to validity with mitigations: concept drift, CICIDS-2017 label noise, lack of live traffic evaluation); **7. Conclusion & Future Work** (7 future directions from the roadmap).
-> **📦 Stack:** Markdown (LaTeX-compatible for paper export)
-> **✅ Outcome:** The paper draft is complete. All quantitative claims reference specific MLflow run IDs. The paper can be formatted for submission with pandoc.
+> **📍 Context:** The research paper is the primary academic output of the XAI-Guard project. It must be complete enough for submission to a workshop at IEEE S&P, USENIX Security, or a top ML venue. By now, every section has been drafted incrementally: Abstract (P2), Introduction (P1), Datasets (P9–P17), Feature Engineering (P18–P25), Experiments (P26–P39), Statistical Analysis (P38.4), Discussion (P37). This subphase assembles and polishes all pieces.
+> **🔧 Task:** Write the XAI-Guard research paper in `docs/research-paper.md`. Use the following template:
+>
+> **Abstract** (250 words): Problem statement → Approach (4 datasets, 6 models, 3 XAI methods, 3-pillar evaluation) → 3 key quantitative findings → Implication for production deployment. Use specific numbers (e.g., "XGBoost achieved F1=0.941 with P99 latency of X ms").
+>
+> **§1 Introduction**: (a) Motivation: why is explainable IDS research needed now? (cite 3 papers showing the gap); (b) Problem: existing IDS studies compare models without explainability or operational constraints; (c) Our approach: XAI-Guard's three-pillar framework; (d) 4 Contributions: [1] First multi-dataset comparative study of 6 model families under unified evaluation, [2] Three-pillar framework combining prediction, explainability, and operational fitness, [3] Open-source implementation with reproducible DVC pipeline, [4] Champion/Challenger production deployment policy; (e) 8 Research Questions (from P1.2).
+>
+> **§2 Related Work**: Survey prior work in 3 areas: (a) ML-based IDS (NSL-KDD/CICIDS papers, 2019–2025); (b) XAI for cybersecurity (SHAP/LIME applications to intrusion detection); (c) Limitations of prior work (single dataset, no XAI, no latency reporting). The Related Work section establishes WHY your contribution is novel.
+>
+> **§3 Datasets & Preprocessing** (from P9–P17 notebooks): Table 1 (dataset statistics), Table 2 (feature schema), Figure 1 (class distributions), split strategy description, SMOTE justification. Every preprocessing decision must be justified.
+>
+> **§4 Experiments & Results**: §4.1 Experimental Setup (hardware, software versions, seeds); §4.2 Ablation Study (Table 3 — from P22B); §4.3 Model Performance (Table 4 — the main result); §4.4 Explainability (Figure 3 SHAP, Table 8 LIME-SHAP correlation); §4.5 Cross-dataset Transfer (Table 7).
+>
+> **§5 Statistical Analysis** (from P38.4 notebook): McNemar matrix, 95% CIs, Cohen's d effect sizes.
+>
+> **§6 Operational Fitness** (from P36): Table 6 latency, Figure 5 Pareto frontier, CDS ranking.
+>
+> **§7 Discussion**: Answer each RQ1–RQ8 with a specific number and a one-sentence interpretation. Acknowledge limitations.
+>
+> **§8 Conclusion**: 3–4 sentences: what was done, main finding, implication, future work.
+>
+> **References**: Minimum 25 references. Use IEEE citation format. Must include: Lundberg & Lee 2017 (SHAP), Vaswani et al. 2017 (Transformer), Ribeiro et al. 2016 (LIME), Hinton et al. 2015 (distillation), the four dataset papers.
+>
+> **📦 Stack:** Markdown (LaTeX-compatible for paper export via pandoc)
+> **✅ Outcome:** The paper draft is complete in `docs/research-paper.md`. All quantitative claims reference specific MLflow run IDs. Use `pandoc research-paper.md --citeproc -o research-paper.pdf` to produce a PDF draft.
 
-#### Subphase 63.4 — End-to-End Acceptance Test & v1.0.0 Release
+#### Subphase 63.5 — Supplementary Materials Checklist
+
+> **🎭 Role:** Principal Research Scientist
+> **📍 Context:** Most ML venues (NeurIPS, ICML, AAAI, IJCAI) require a reproducibility checklist or supplementary materials document. Without it, papers can be rejected on grounds of non-reproducibility, regardless of the technical quality.
+> **🔧 Task:** Create `docs/supplementary-materials.md`. Include:
+>
+> **Reproducibility Statement** (required by most venues):
+> ```
+> All experiments are reproducible using:
+>   git clone https://github.com/[your-username]/xai-guard
+>   git checkout v1.0.0
+>   dvc pull   # retrieves exact dataset versions
+>   dvc repro  # reproduces all preprocessing + training + evaluation
+> ```
+>
+> **Model Hyperparameter Tables** (supplementary Table S1–S6): One table per model family listing ALL searched and final hyperparameter values. This is required for reproducibility.
+>
+> **Dataset Statistics** (supplementary Table S7): Exact record counts per class, per split, per dataset — more detail than the main paper allows.
+>
+> **Computational Resources**: "All experiments were run on [hardware]. Training the full pipeline from raw datasets to evaluation took approximately X GPU-hours."
+>
+> **Ethical Statement**: "All datasets used are publicly available and contain no personally identifiable information. Network traffic analysis was conducted on anonymised simulation data."
+>
+> **Data Availability**: "The preprocessed DVC-tracked datasets are available at [DVC remote URL]. The raw datasets are available at their respective official URLs (NSL-KDD: [...], CICIDS-2017: [...], UNSW-NB15: [...], BETH: [...])."
+>
+> **📦 Stack:** Markdown
+> **✅ Outcome:** `docs/supplementary-materials.md` is complete. Submission to any venue requiring supplementary materials is ready.
+
+#### Subphase 63.6 — Venue Selection Guide
+
+> **🎭 Role:** Principal Research Scientist
+> **📍 Context:** Choosing the right venue for your first paper dramatically affects your probability of acceptance. This subphase provides a structured guide for matching your paper to the right conference or journal.
+> **🔧 Task:** Review your paper's contributions and select a primary and two backup venues. Use this decision framework:
+>
+> **Tier 1 — Security venues (higher impact, harder to get in):**
+> - IEEE Symposium on Security and Privacy (IEEE S&P) — Top-tier, ~15% acceptance rate
+> - USENIX Security Symposium — Top-tier, ~15% acceptance rate
+> - ACM CCS — Top-tier, ~18% acceptance rate
+> - NDSS — Strong-tier, ~20% acceptance rate
+>
+> **Tier 2 — ML venues with security track:**
+> - ICML Security Workshop — Good exposure to ML community
+> - NeurIPS Workshop on ML for Cybersecurity — Annual workshop, good for a first paper
+> - AAAI — Accepts applied ML papers including IDS studies
+>
+> **Tier 3 — Best for a first full paper submission (recommended starting point):**
+> - IEEE Access — Open access, high acceptance rate, peer-reviewed
+> - Computers & Security (Elsevier) — The primary IDS research journal, ~30% acceptance rate
+> - IEEE Transactions on Information Forensics and Security (TIFS) — Top-tier journal for security ML
+>
+> **For a student's first paper, recommended path:**
+> 1. Submit to NeurIPS or ICML Workshop on ML for Cybersecurity (lower bar, fast feedback)
+> 2. Use workshop feedback to revise, submit to Computers & Security journal
+> 3. Upon journal acceptance, submit an extended version to IEEE S&P
+>
+> **What reviewers will look for:** (1) Novelty — is the comparison truly the first of its kind? Check prior surveys; (2) Statistical rigour — McNemar's + bootstrap CIs + effect sizes are expected; (3) Reproducibility — DVC pipeline + open code are major positives; (4) Practical significance — does the CDS and latency analysis make the paper actionable?
+>
+> **📦 Stack:** None (planning task)
+> **✅ Outcome:** `docs/venue-selection.md` documents your primary and two backup venues, their submission deadlines, page limits, and the specific contributions that differentiate your paper for each venue.
+
+---
+
+
 
 > **🎭 Role:** QA Lead, Release Manager, and Project Completion Authority
 > **📍 Context:** The acceptance test formally certifies the production system before the v1.0.0 tag. The release bundles all research artifacts, documentation, and code in a stable, reproducible state.

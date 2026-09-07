@@ -1,14 +1,56 @@
 # 05 — Transformer Architecture & XAI Evaluation
 
 > **Phases 33–39** | Transformer Encoder, Transformer training, Lightweight Transformer with knowledge distillation, quantisation and deployment profiling, cross-model comparative analysis, statistical significance testing, and SHAP implementation.
->
-> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
+
+## 🗺️ Research Paper Map
+
+| Phase | What You Build | Paper Section | Paper Artefact |
+|-------|---------------|---------------|----------------|
+| P33 | Transformer architecture | §4.3 Deep Learning Models | Architecture description + diagram |
+| P34 | Transformer training + HPO | §4.3 Table 4, Row 5 | Transformer metrics |
+| P35 | Lightweight Transformer (distillation) | §4.3 Table 4, Row 6 | LT metrics + distillation analysis |
+| P36 | Quantisation + CDS | §6 Operational Fitness | Table 6: Latency, Figure 5: Pareto |
+| P37 | Master comparison table | §4.3 Table 4 (complete) | Central result of the entire paper |
+| P38 | Statistical significance | §5 Statistical Analysis | McNemar matrix, CIs, effect sizes |
+| P39 | SHAP implementation | §4.4 Explainability | Figure 3: SHAP, stability scores |
+
+> **This document contains the two most important phases in the entire project:** P37 (master comparison) and P38 (statistical significance). Without P38, your paper cannot make statistically valid claims about model superiority. Without P37, there is no central result.
+
+---
 
 ---
 
 ## Phase 33 — Transformer Encoder Architecture
 
 **Context:** The Transformer Encoder is the most powerful model in the benchmark. Its self-attention mechanism produces the richest XAI signal via Attention Rollout.
+
+
+### 🎓 What You Will Learn in Phase 33
+You will implement the Transformer Encoder architecture from the ground up in PyTorch. This is the most architecturally complex model in your benchmark. You will learn: scaled dot-product attention, multi-head attention, Pre-Layer Norm (Pre-LN) transformers, and Attention Rollout for XAI.
+
+### 📄 Research Paper Connection
+- Phase 33.1–33.2 → **§4.3 Architecture**: "The Transformer Encoder uses N Pre-LN encoder blocks with H attention heads and d_model dimensions. Attention weights are stored at each layer for Attention Rollout XAI extraction (Abnar & Zuidema, 2020)."
+- Phase 33.3 → **§4.4 Explainability**: Attention Rollout is your third XAI method alongside SHAP and LIME
+
+### 📖 Concept: Scaled Dot-Product Attention
+The core operation of a Transformer. Each event (query Q) looks at all other events (keys K) and decides how much to attend to each:
+1. `scores = QKᵀ / √d_k` (scale prevents vanishing gradients)
+2. `attention_weights = softmax(scores)` — each row sums to 1.0
+3. `output = attention_weights × V`
+
+**Security intuition:** When predicting whether event_10 is malicious, attention allows it to strongly attend to event_3 (where the port scan began) even though they are 7 steps apart. This long-range dependency is impossible for LSTM to model as effectively.
+
+**Multi-head attention:** Run H attention operations in parallel (each on a d_model/H subspace), then concatenate. Each head can focus on different aspects — one head on temporal proximity, another on port patterns.
+
+### 📖 Concept: Pre-LN vs Post-LN Transformers
+Original Transformer (Vaswani et al., 2017) used Post-LN: LayerNorm AFTER the residual connection. This is hard to train — requires careful warm-up. Pre-LN (used here): LayerNorm BEFORE the attention/FFN operation. Produces more stable gradients. (Liu et al., 2020)
+
+**In your paper:** "We use the Pre-LN Transformer architecture (Liu et al., 2020) for improved training stability."
+
+### ⚠️ Common Mistakes — Transformer Architecture
+- **n_heads must divide d_model**: If d_model=128 and n_heads=6 → 21.3 dims/head. Always validate: `assert d_model % n_heads == 0`.
+- **Not storing attention weights**: Use `self.last_attention_weights = attention_weights.detach()` inside `torch.no_grad()`.
+- **Not calling `model.eval()`**: Dropout is active during training. Always call `model.eval()` before inference.
 
 #### Subphase 33.1 — Multi-Head Self-Attention Block
 
@@ -48,6 +90,24 @@
 
 **Context:** Train the Transformer with a warm-up learning rate schedule and Optuna search. This is the computationally most expensive training phase.
 
+
+### 🎓 What You Will Learn in Phase 34
+You will train the full Transformer with a cosine warm-up learning rate schedule and Optuna search. This is the most compute-expensive phase — budget accordingly. You will learn why Transformers need warm-up and how to save attention weights as research artefacts.
+
+### 📄 Research Paper Connection
+- Phase 34 → **Table 4, Row 5**: Full Transformer three-pillar metrics
+- Phase 34.2 Attention weights → Used in **Phase 41** (Attention Rollout XAI) → **Figure 3d** (attention heatmap)
+
+### 📖 Concept: Learning Rate Warm-Up
+Transformers are sensitive to learning rate at the start of training. Warm-up solution: start with a very small LR, increase linearly to the target over N_warmup steps, then decay via cosine schedule.
+
+```
+Step 0 → N_warmup:        lr = target_lr × (step / N_warmup)
+Step N_warmup → N_total:  lr = target_lr × cos(π × step / N_total)
+```
+
+**Intuition:** Warm-up lets the model build reasonable initial representations before applying the full learning rate. Once stable, cosine decay gradually refines them without large destructive updates.
+
 #### Subphase 34.1 — Warm-Up Cosine Scheduler
 
 > **🎭 Role:** Senior Deep Learning Engineer
@@ -69,6 +129,29 @@
 ## Phase 35 — Lightweight Transformer & Knowledge Distillation
 
 **Context:** The full Transformer may be too slow for production. Knowledge distillation trains a smaller student model to mimic the large teacher, achieving similar accuracy at lower latency cost.
+
+
+### 🎓 What You Will Learn in Phase 35
+Knowledge distillation trains a small "student" model to mimic a large "teacher" model. You will learn: soft targets, temperature scaling, and distillation loss. This produces the Lightweight Transformer — which may fit within the 100ms production latency budget while retaining most accuracy.
+
+### 📄 Research Paper Connection
+- Phase 35 → **Table 4, Row 6**: Lightweight Transformer metrics
+- Phase 35 → **§4.3**: "Knowledge distillation (Hinton et al., 2015) was used to compress the full Transformer into a model with <500K parameters..."
+- Phase 35 answers **RQ3**: "Does the Transformer accuracy gain exceed its GPU-hour cost?"
+
+### 📖 Concept: Knowledge Distillation and Temperature Scaling
+Key insight (Hinton et al., 2015): the teacher's **soft probability outputs** contain more information than hard labels. The teacher might predict `{BENIGN: 0.85, DDoS: 0.12}` — the soft probabilities tell the student "this event has some DDoS characteristics," which the hard label "BENIGN" does not.
+
+**Temperature T:** `softmax(logits / T)` — higher T → more uniform → more "dark knowledge" in secondary predictions.
+
+**Distillation loss:**
+`L = α × KL(student_probs/T || teacher_probs/T) + (1−α) × CrossEntropy(student, hard_labels)`
+
+Default α=0.7, T=4. Use T=1 (standard softmax) at evaluation time.
+
+### ⚠️ Common Mistakes — Knowledge Distillation
+- **Not freezing the teacher**: Always `teacher.eval()` with no gradients during distillation.
+- **Using temperature at evaluation**: Only use T during training for the distillation loss — T=1 at test time.
 
 #### Subphase 35.1 — Lightweight Transformer Architecture
 
@@ -92,6 +175,20 @@
 
 **Context:** Quantisation reduces model size and CPU inference latency. Deployment profiling determines the composite deployment score for all six models.
 
+
+### 🎓 What You Will Learn in Phase 36
+You will apply INT8 quantisation to the Lightweight Transformer and compute the Composite Deployment Score (CDS) for all six models. The CDS is your Pillar 3 summary metric. The Pareto frontier plot is Figure 5 of your paper.
+
+### 📄 Research Paper Connection
+- Phase 36.1 → **Table 6**: Before/after quantisation (size, speed, F1)
+- Phase 36.2 → **Figure 5**: Pareto frontier — the key operational trade-off visualisation
+- Phase 36 answers **RQ3** (accuracy vs GPU-hour trade-off) and **RQ6** (most cost-efficient model)
+
+### 📖 Concept: INT8 Quantisation
+Standard neural networks use float32 (32 bits per weight). INT8 converts to 8-bit integers: 4× smaller model, 2–4× faster inference on modern CPUs, typically <1% F1 loss for classification tasks.
+
+`torch.quantization.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)`
+
 #### Subphase 36.1 — INT8 Quantisation
 
 > **🎭 Role:** Senior ML Inference Optimisation Engineer
@@ -113,6 +210,34 @@
 ## Phase 37 — Cross-Model Comparative Analysis
 
 **Context:** The master comparison table is the central deliverable of the ML research phase. It answers all eight research questions and determines the Champion.
+
+
+### 🎓 What You Will Learn in Phase 37
+This is the most important phase in the entire project. You will build the master comparison table that is the central result of your research paper. You will learn: how to load results from MLflow programmatically, pandas conditional formatting for publication tables, and how to make the Champion/Challenger selection decision with documented justification.
+
+### 📄 Research Paper Connection
+- Phase 37.1 → **Table 4 (complete)**: The entire master comparison table — the primary result of your paper
+- Phase 37.2 → **Figure 2**: Per-attack-class F1 heatmap
+- Phase 37.3 → **§4.3 Champion Selection**: Justification text for why XGBoost is Champion
+
+### ⚠️ Common Mistakes — Master Comparison Table
+- **Mixing validation F1 with test F1**: Table 4 must use TEST SET metrics only. Validation metrics are for hyperparameter selection.
+- **Not normalising before CDS**: The CDS formula requires min-max normalisation across all six models. Don't compute CDS from raw F1/latency values.
+- **Reporting too many decimal places**: Report F1 to 3 decimal places (e.g., 0.941) and latency to 1 decimal (e.g., 12.4 ms). More precision implies false confidence.
+
+
+### 🎓 What You Will Learn in Phase 37
+This is the most important phase in the entire project. You will build the master comparison table that is the central result of your research paper. You will learn: programmatic MLflow result loading, pandas conditional formatting for publication tables, and how to make the Champion selection decision with documented justification.
+
+### 📄 Research Paper Connection
+- Phase 37.1 → **Table 4 (complete)**: The primary result of your paper — all 6 models × all metrics
+- Phase 37.2 → **Figure 2**: Per-attack-class F1 heatmap
+- Phase 37.3 → **§4.3 Champion Selection**: Justification text for why XGBoost is Champion
+
+### ⚠️ Common Mistakes — Master Comparison Table
+- **Mixing validation and test F1**: Table 4 must use TEST SET metrics only.
+- **Not normalising before CDS**: CDS formula requires min-max normalisation across all 6 models.
+- **Reporting too many decimal places**: F1 to 3 decimal places (0.941), latency to 1 decimal (12.4 ms).
 
 #### Subphase 37.1 — Master Comparison Table
 
@@ -144,6 +269,30 @@
 
 **Context:** Research claims about model superiority must be statistically validated. Without significance testing, apparent differences may be random variation.
 
+
+### 🎓 What You Will Learn in Phase 38
+Statistical significance testing is what separates a research paper from a blog post. You will learn McNemar's test, bootstrap confidence intervals, and effect size computation. Without Phase 38, your claims of model superiority are statistically unsubstantiated.
+
+### 📄 Research Paper Connection
+- Phase 38.1 → **§5 Statistical Analysis**: McNemar significance matrix (15 pairwise comparisons)
+- Phase 38.2 → **Table 4** (each F1 gets ± CI): "XGBoost F1=0.941 (95% CI: [0.937, 0.945])"
+- **New Subphase 38.3** → Effect sizes (Cohen's d)
+- **New Subphase 38.4** → Writing the complete statistical results section
+
+### 📖 Concept: McNemar's Test
+McNemar's test answers: "Do models A and B make DIFFERENT errors?" For a pair of models, build a 2×2 contingency table of correct/incorrect predictions, then: `χ² = (|n01 − n10| − 1)² / (n01 + n10)` → compare to chi-squared distribution.
+
+**Bonferroni correction:** You do C(6,2)=15 pairwise comparisons. Use threshold α/15 = 0.0033 per test.
+
+**In your paper:** "We applied McNemar's test (α=0.05, Bonferroni-corrected, threshold p<0.0033) to assess all 15 pairwise model comparisons."
+
+### 📖 Concept: Bootstrap Confidence Intervals
+1. Resample test set WITH replacement 1000 times
+2. Compute F1 on each resample
+3. Report 2.5th and 97.5th percentile → 95% CI
+
+Narrow CI = large test set, stable estimates. Wide CI = small test set, results may vary.
+
 #### Subphase 38.1 — McNemar's Test Implementation
 
 > **🎭 Role:** ML Research Scientist with statistical testing expertise
@@ -160,11 +309,50 @@
 > **📦 Stack:** numpy, sklearn
 > **✅ Outcome:** Each model has a 95% bootstrap CI for F1 macro. The CI widths indicate which model's performance estimate is most reliable.
 
+
+#### Subphase 38.3 — Effect Size Computation
+
+> **🎭 Role:** ML Research Scientist with statistical expertise
+> **📍 Context:** Statistical significance (p-value) tells you whether a difference is real. Effect size tells you whether it is MEANINGFUL. A model statistically significantly better by 0.001 F1 is real — but practically negligible. Reviewers increasingly require effect sizes alongside p-values.
+> **🔧 Task:** Implement `ml/src/evaluation/effect_size.py`. For each of the 15 pairwise model comparisons: compute Cohen's d = `(mean_A − mean_B) / pooled_std` using 1000 bootstrap F1 distributions. Interpret: |d| < 0.2 = negligible, 0.2–0.5 = small, 0.5–0.8 = medium, >0.8 = large. Also compute Cliff's delta (non-parametric) as robustness check. Build a 6×6 effect size matrix. Save as `ml/artifacts/effect_sizes.csv`.
+> **📦 Stack:** numpy, scipy, pandas
+> **✅ Outcome:** Effect size matrix shows which comparisons are practically meaningful. Comparisons with |d| < 0.2 are reported as "statistically significant but practically negligible."
+
+#### Subphase 38.4 — Writing the Statistical Results Section
+
+> **🎭 Role:** ML Research Scientist and Technical Writer
+> **📍 Context:** Statistical results must be reported in specific academic format. This subphase produces the complete text of §5 (Statistical Analysis) of your paper.
+> **🔧 Task:** Create `ml/notebooks/analysis/03_statistical_results_writing.ipynb`. Write §5.1 Significance Testing, §5.2 Confidence Intervals, and §5.3 Effect Sizes using the templates from the concept sections above. Fill in all placeholders with real numbers from the effect_sizes.csv and bootstrap CI CSVs. The notebook's markdown output IS your paper's §5.
+> **📦 Stack:** Jupyter Markdown, pandas
+> **✅ Outcome:** A complete draft of §5 (Statistical Analysis) ready for inclusion in the paper.
+
+
 ---
 
 ## Phase 39 — SHAP Explainability Implementation
 
 **Context:** SHAP is the primary XAI method. It provides theoretically grounded feature importance values for every prediction, enabling the analyst dashboard's Threat Detection card.
+
+
+### 🎓 What You Will Learn in Phase 39
+SHAP (SHapley Additive exPlanations) is your primary XAI method. You will learn: the Shapley value game-theoretic foundation, the three SHAP explainer variants (TreeExplainer, DeepExplainer, GradientExplainer), global vs local explanations, and SHAP stability testing.
+
+### 📄 Research Paper Connection
+- Phase 39.1–39.2 → **Figure 3**: SHAP beeswarm plots for all 6 models (panels a–f)
+- Phase 39.2 Spearman ρ → **§4.4**: "Feature importance rankings showed Spearman correlation of ρ=X across model families..."
+- Phase 39.3 Stability → **Table 8**: XAI stability comparison per model
+- **New Subphase 39.4** → **Figure 4**: LIME vs SHAP correlation (answers RQ4)
+- **New Subphase 39.5** → **Table 9**: Analyst Utility Composite Score per model (completes Pillar 2)
+
+### 📖 Concept: SHAP — Why Shapley Values?
+Based on Shapley values from cooperative game theory (Shapley, 1953). For each feature i, the Shapley value is the average marginal contribution across all possible feature orderings. This ensures: (1) SHAP values sum to the prediction (additivity); (2) equal-contribution features get equal values (symmetry); (3) useless features get SHAP=0 (dummy); (4) same framework for all 6 models (model-agnostic).
+
+**Reference:** Lundberg & Lee, 2017 "A Unified Approach to Interpreting Model Predictions" (NeurIPS 2017)
+
+### ⚠️ Common Mistakes — SHAP Analysis
+- **Confusing global and local SHAP**: Local SHAP explains one prediction. Global SHAP (mean |SHAP|) explains the model overall. Your paper needs both.
+- **Not verifying additivity**: SHAP values must sum to `prediction − base_value` for each sample. If not (within 0.1 tolerance), your explainer is misconfigured.
+- **Computing SHAP on the full test set**: SHAP is slow. Use 1000 stratified-by-class representative test samples for global analysis.
 
 #### Subphase 39.1 — Unified SHAP Explainer Interface
 
@@ -191,6 +379,31 @@
 > **✅ Outcome:** All deterministic models (LR, RF, XGBoost) have stability score = 1.0. Deep learning models have stability score > 0.95 with fixed seed.
 
 ---
+
+
+#### Subphase 39.4 — LIME vs SHAP Correlation Analysis
+
+> **🎭 Role:** XAI Research Scientist
+> **📍 Context:** RQ4 asks which XAI method produces more analyst-actionable explanations. As a first step, compute the agreement between LIME and SHAP on the same predictions — high correlation means both agree; low correlation means conflicting explanations (a problem for analysts who must decide which to trust).
+> **🔧 Task:** Create `ml/notebooks/xai/02_lime_shap_correlation.ipynb`. For 200 test samples (balanced across 7 classes): compute SHAP and LIME top-10 feature rankings. Compute Spearman's rank correlation (ρ) per sample. Report mean ρ, median ρ, ρ per attack class. Build LIME-SHAP correlation Table 8 for all 6 models. Save Figure 4 (SHAP rank vs LIME rank scatter) at 300 DPI.
+> **📦 Stack:** shap, lime, scipy, matplotlib, pandas
+> **✅ Outcome:** Table 8 (LIME-SHAP correlation) is complete. Figure 4 is publication-quality. This directly answers RQ4.
+
+#### Subphase 39.5 — Analyst Utility Composite Score
+
+> **🎭 Role:** XAI Research Scientist and Human Factors Researcher
+> **📍 Context:** The evaluation framework (Phase 1.3) defines Pillar 2's analyst utility composite score with 5 sub-metrics. This completes Pillar 2. Without this, the XAI evaluation section is missing its summary metric.
+> **🔧 Task:** Implement `ml/src/evaluation/analyst_utility.py`. `AnalystUtilityScorer` computing for each model: (1) Feature Conciseness — fraction where top-5 features explain >80% of |SHAP|; (2) Explanation Consistency — same features in top-5 for same attack type; (3) Explanation Speed — relative XAI computation time; (4) SHAP-LIME Agreement — mean ρ from Subphase 39.4; (5) Additivity Compliance — binary check. Composite: `AUS = 0.25×C1 + 0.25×C2 + 0.20×C3 + 0.20×C4 + 0.10×C5`. Log all sub-metrics and AUS to MLflow.
+> **📦 Stack:** numpy, shap, lime, mlflow, pydantic v2
+> **✅ Outcome:** All 6 models have an AUS score. This completes Pillar 2 of the evaluation framework and produces Table 9 of the paper.
+
+### ✅ Learning Checkpoint — Phases 33–39
+1. McNemar's test gives p=0.04 for the XGBoost vs LSTM comparison. After Bonferroni correction for 15 tests (threshold p<0.0033), is this significant? What does this mean for your paper's claim?
+2. Your Transformer achieves F1=0.955 but latency P99=240ms. The production budget is 100ms. Can it be the Champion? What is the CDS score telling you?
+3. A student reports "SHAP shows that bytes_per_packet is the most important feature." What is the difference between saying this for a specific prediction (local SHAP) vs for the model overall (global SHAP)? Why does this distinction matter for an analyst?
+
+---
+
 
 ## Phase Map
 

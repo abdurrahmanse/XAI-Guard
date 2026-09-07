@@ -1,14 +1,50 @@
 # 04 — Classical ML & Sequence Model Experiments
 
 > **Phases 26–32** | Common model interface, Logistic Regression baseline, Random Forest, XGBoost + Champion registration, LSTM architecture, LSTM training, and LSTM evaluation.
->
-> **Prompt Engineering Format:** Each subphase includes Role, Context, Task, Stack, and Outcome.
+
+## 🗺️ Research Paper Map
+
+| Phase | What You Build | Paper Section | Paper Artefact |
+|-------|---------------|---------------|----------------|
+| P26 | Common Model Interface + Evaluation Harness | §4.1 Experimental Setup | "All models implement identical interface..." |
+| P27 | Logistic Regression baseline | §4.3 Table 4, Row 1 | F1 performance floor |
+| P28 | Random Forest | §4.3 Table 4, Row 2 | LR vs RF comparison |
+| P29 | XGBoost (Initial Champion) | §4.3 Table 4, Row 3 | Champion selection + SHAP beeswarm |
+| P30 | BiLSTM architecture | §4.3 Deep Learning Setup | Architecture description |
+| P31 | LSTM training + HPO | §4.3 Table 4, Row 4 | LSTM metrics + hidden states |
+| P32 | LSTM evaluation + cross-dataset transfer | §4.3, §4.5 | Table 7 — generalisation gap |
+
+> **Core Research Claims This Doc Produces:**
+> - **RQ1** (classical vs deep): "XGBoost outperforms LR baseline by +ΔF1 but LSTM provides +ΔF1 on sequential attacks at 8× latency cost"
+> - **RQ7** (cross-dataset generalisation): zero-shot UNSW-NB15 transfer results for classical models (completed in Subphase 32.4)
 
 ---
+
 
 ## Phase 26 — Common Model Interface Design
 
 **Context:** All six models must implement an identical interface so evaluation, serialisation, and production serving are model-agnostic. Define the interface before writing a single model.
+
+
+### 🎓 What You Will Learn in Phase 26
+Before writing a single model, you design the interface that ALL six models share. This is foundational ML engineering for research: a Common Model Interface (CMI) guarantees your evaluation harness, XAI code, and production API are model-agnostic. It is also the reason your comparison is methodologically valid.
+
+### 📖 Concept: Why Abstract Base Classes in ML Research?
+When comparing 6 models, you need a guarantee that all are evaluated identically. Without a shared interface, you might compute F1 differently for different models — an invisible bug that makes the comparison unfair and the paper unsubmittable.
+
+The Abstract Base Class (ABC) pattern enforces this: any class inheriting from `XAIGuardModel` MUST implement `fit`, `predict`, `predict_proba`, `save`, and `load`. If it doesn't, Python raises a `TypeError` at import time — before any experiment runs.
+
+**In your paper (§4.1):** "All six models implement a common `XAIGuardModel` interface, ensuring evaluation conditions are identical. No model-specific code appears in the evaluation harness."
+
+### 📖 Concept: Bayesian Hyperparameter Optimisation (Optuna TPE)
+Most models in this project use Optuna with the TPE (Tree-structured Parzen Estimator) sampler. Grid search tests every combination — computationally infeasible for large spaces. Random search picks randomly — wastes trials on bad regions. TPE learns from previous trials, building a probabilistic model of which hyperparameters produce good results, sampling more from promising regions. This makes it 3–10× more efficient than random search.
+
+**In your paper (§4.1):** "We used Optuna's TPE sampler with MedianPruner for hyperparameter search. We ran N trials per model, early-stopping unpromising trials at 10 epochs."
+
+### ⚠️ Common Mistakes — Model Interface & Evaluation
+- **Computing metrics differently per model**: Always use the harness. Never compute F1 manually in a notebook and compare with harness-computed F1 from another model.
+- **Using test set for hyperparameter selection**: Optuna optimises on VALIDATION set F1. The test set is touched exactly once, at the very end, for the final reported table.
+- **Reporting overall accuracy on imbalanced data**: CICIDS-2017 is 83% BENIGN. A model predicting all-BENIGN gets 83% accuracy but 0% recall on attacks. Always report F1 Macro AND per-class F1.
 
 #### Subphase 26.1 — Abstract Model Interface
 
@@ -56,6 +92,22 @@
 
 **Context:** Logistic Regression sets the performance floor. Any model that does not significantly outperform it on all three pillars does not justify its additional complexity.
 
+
+### 🎓 What You Will Learn in Phase 27
+Logistic Regression is intentionally simple. Its purpose is to establish the **performance floor** — the baseline that all other models are measured against. If a complex model doesn't significantly outperform LR, it doesn't justify its additional complexity, cost, or latency.
+
+### 📖 Concept: Why Logistic Regression as Baseline?
+LR makes one strong assumption: the decision boundary between classes is linear in feature space. If your engineered features are good, LR should do reasonably well even with this constraint.
+
+The performance gap between LR and XGBoost tells you: **how much of your accuracy comes from feature engineering vs model complexity?** If LR achieves 0.88 F1 and XGBoost achieves 0.96 F1, the 0.08 gap is the value of XGBoost's non-linear learning. If LR achieves 0.94, the gap is small and XGBoost's extra complexity is less justified.
+
+This directly answers **RQ5** in your research: "Is there a measurable trade-off between prediction accuracy and model complexity?"
+
+### ⚠️ Common Mistakes — LR Training
+- **Not using `class_weight='balanced'`**: On CICIDS-2017, LR without class weights will predict BENIGN for everything. Always use balanced weights.
+- **Convergence warnings**: If you see `ConvergenceWarning`, increase `max_iter`. With 2.8M rows, LR may need 2000+ iterations.
+- **Reporting only overall F1**: The LR analysis MUST include per-class F1. Reviewers will ask: "What is LR's recall on the rarest attack class?"
+
 #### Subphase 27.1 — LR Implementation
 
 > **🎭 Role:** Senior ML Engineer
@@ -86,6 +138,17 @@
 
 **Context:** Random Forest provides strong non-linear performance and native feature importance. It is the classical ML champion before XGBoost and deep learning are compared.
 
+
+### 🎓 What You Will Learn in Phase 28
+Random Forest introduces ensemble learning: combining many weak learners (decision trees) into one strong learner. You will learn RandomizedSearchCV as an efficient alternative to grid search, and how to use Out-of-Bag (OOB) score as a free validation metric.
+
+### 📖 Concept: Random Forest and Feature Importance
+Random Forest trains N decision trees, each on a random subset of training samples and features. Prediction is by majority vote. Because each tree is different, the ensemble is more robust than any single tree.
+
+**Gini Feature Importance:** For each feature, RF measures how much it reduces impurity (Gini index) across all trees. This is a fast, built-in alternative to SHAP — but it has known biases toward high-cardinality features and correlated features.
+
+**Why this matters for your paper:** In Phase 28.3, you compare RF Gini importance vs SHAP importance. If they agree, great. If they disagree, that's an interesting finding suggesting the model uses features differently from what Gini importance implies.
+
 #### Subphase 28.1 — RF Implementation
 
 > **🎭 Role:** Senior ML Engineer
@@ -115,6 +178,30 @@
 ## Phase 29 — XGBoost Champion Registration
 
 **Context:** XGBoost is the expected Champion model — the best balance of accuracy, speed, and explainability for tabular network security data. It becomes the initial Champion after training.
+
+
+### 🎓 What You Will Learn in Phase 29
+XGBoost is your expected Champion model. You will learn: gradient boosting theory, Optuna-based hyperparameter search at scale (100 trials), SHAP sanity checking, and how to register a model as Champion in MLflow. This is the most complete training workflow in the project.
+
+### 📄 Research Paper Connection
+- Phase 29 → **Table 4, Row 3 (XGBoost)**: The full three-pillar evaluation
+- Phase 29.3 SHAP sanity check → **§4.4**: "XGBoost SHAP values satisfy the additivity property..."
+- Phase 29.4 Analysis Notebook → **Figure 7**: LR vs RF vs XGBoost F1 comparison, Optuna history
+- Phase 29 answers **RQ1** (classical ML vs deep learning) from the classical side
+
+### 📖 Concept: How XGBoost Works
+XGBoost (Extreme Gradient Boosting) builds trees sequentially: each new tree tries to correct the errors made by all previous trees. This is gradient boosting — each tree is fitted on the gradient of the loss function with respect to current predictions.
+
+Key advantages for security data:
+1. **Handles class imbalance** via `sample_weight` array
+2. **Early stopping**: if validation F1 hasn't improved for 20 rounds, training stops automatically — prevents overfitting
+3. **Native SHAP support**: `shap.TreeExplainer(xgboost_model)` is the fastest and most accurate SHAP method
+4. **Fast inference**: single tree traversal, very low P99 latency
+
+### ⚠️ Common Mistakes — XGBoost Training
+- **Not using early stopping**: XGBoost can overfit if trained for too many rounds. Always provide a validation set and `early_stopping_rounds`.
+- **Forgetting to retrain on full training set**: After Optuna finds the best hyperparameters, retrain on ALL training data (train+val). Optuna runs only use val to find params.
+- **Not saving the SHAP beeswarm plot immediately**: This is Figure 7 of your paper. Always log it to MLflow right after training.
 
 #### Subphase 29.1 — XGBoost Implementation
 
@@ -154,6 +241,31 @@
 
 **Context:** LSTM is the first deep learning model. It processes event sequences to detect attack patterns that span multiple connections, a capability tabular models cannot match.
 
+
+### 🎓 What You Will Learn in Phase 30
+You will implement a Bidirectional LSTM from scratch using PyTorch Lightning. This is the first deep learning model in your benchmark. You will learn: LSTM cell mechanics, bidirectionality, gradient clipping, and mixed-precision training.
+
+### 📄 Research Paper Connection
+- Phase 30 → **§4.3 Architecture Description**: "Our BiLSTM processes 10-event sequences from each source IP, reading forward and backward to capture temporal context."
+- Phase 30.3 Unit Tests → **Reproducibility statement**: "Architecture correctness is verified by 7 unit tests including gradient flow and serialisation parity."
+
+### 📖 Concept: Why Bidirectional LSTM?
+A standard LSTM processes a sequence left-to-right (past to present). A **Bidirectional** LSTM runs two LSTMs: one forward (past to present) and one backward (present to past). Their hidden states are concatenated.
+
+**Why does backward context help?** Consider a 10-event window where events 1–8 are normal but events 9–10 are the beginning of an attack. A forward LSTM sets its hidden state to "normal" from events 1–8 and may under-weight events 9–10. A backward LSTM starts from event 10 (the attack start) and propagates that context back through the sequence.
+
+**Limitation:** In production, you can't read the future. Bidirectionality only works because you're using a fixed-length window of **past** events — all 10 events are already available before predicting.
+
+### 📖 Concept: Gradient Clipping
+Deep RNNs like LSTMs are prone to "exploding gradients": during backpropagation, the gradient can grow exponentially through many time steps. Gradient clipping prevents this: if the gradient norm exceeds a threshold (usually 1.0), it is rescaled to have exactly that norm. This keeps training stable without preventing learning.
+
+**In PyTorch:** `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` — called before `optimizer.step()` each iteration.
+
+### ⚠️ Common Mistakes — LSTM Architecture
+- **Mixing events from different source IPs in one sequence**: The sequence builder must never put IP_A and IP_B events in the same window. The LSTM would learn meaningless cross-IP patterns.
+- **Label assignment**: Assign the label of the LAST event in the window (not first, not majority). You're predicting whether the current event is malicious given its context.
+- **Not using `model.eval()` during inference**: Dropout is active during training but must be disabled during evaluation. Always call `model.eval()` before any `predict` call.
+
 #### Subphase 30.1 — BiLSTM Architecture
 
 > **🎭 Role:** Senior Deep Learning Engineer
@@ -184,6 +296,13 @@
 
 **Context:** Train the LSTM with Optuna hyperparameter search and register the best model for comparison with XGBoost.
 
+
+### 🎓 What You Will Learn in Phase 31
+You will train the LSTM with Optuna search. GPU training introduces new considerations: memory management and mixed precision. You will also extract hidden states for the XAI analysis in Phase 41.
+
+### 📖 Concept: Mixed Precision Training
+By default, PyTorch uses 32-bit floating point (float32). Mixed precision training uses 16-bit floats (bfloat16) for most computations, keeping only critical operations in float32. Benefits: ~2× speedup, ~2× memory reduction on CUDA GPUs. PyTorch Lightning handles this with `precision='bf16-mixed'`. If training on CPU, use `precision=32`.
+
 #### Subphase 31.1 — Optuna LSTM Search
 
 > **🎭 Role:** Senior ML Research Engineer
@@ -206,6 +325,16 @@
 
 **Context:** Evaluate LSTM against XGBoost on all three pillars to answer RQ1 (classical vs deep learning) and RQ2 (LSTM vs Transformer).
 
+
+### 🎓 What You Will Learn in Phase 32
+This is the evaluation and research findings phase for LSTM. You will learn how to write structured research findings that map directly to your paper's Results section, and how to conduct a sequence length sensitivity analysis. You will also implement cross-dataset transfer evaluation — critical for answering RQ7.
+
+### 📄 Research Paper Connection
+- Subphase 32.1 → **Table 4, Row 4 (LSTM)** + **Figure 8**: LSTM vs XGBoost comparison
+- Subphase 32.2 → **Appendix C**: Sequence length sensitivity
+- **New Subphase 32.3** → **§4.3 Research Findings** writing template (direct text for paper)
+- **New Subphase 32.4** → **Table 7**: Cross-dataset transfer results (RQ7)
+
 #### Subphase 32.1 — Sequence vs Tabular Analysis
 
 > **🎭 Role:** ML Research Scientist
@@ -223,6 +352,65 @@
 > **✅ Outcome:** The sensitivity analysis determines the optimal window size. `ml/configs/sequence_config.yaml` is updated with the recommended value.
 
 ---
+
+#### Subphase 32.3 — Research Findings Writing Template
+
+> **🎭 Role:** ML Research Scientist and Technical Writer
+> **📍 Context:** After completing model training and evaluation, you must document findings in a consistent format. This subphase produces the text that goes directly into your paper's §4.3 Results section. Every model (P27–P36) follows this template.
+> **🔧 Task:** Add a final markdown cell to EVERY model analysis notebook (01_lr_analysis.ipynb through 04_lstm_analysis.ipynb) with the following structure:
+>
+> ```markdown
+> ## Research Findings: [Model Name]
+>
+> ### RQ Answers from This Model
+> - **RQ1 (Classical vs Deep Learning):** [How does this model compare to LR baseline? Specific F1 numbers.]
+> - **RQ6 (Cost Efficiency):** [Latency P99 = X ms. Memory = Y MB. Cost assessment.]
+>
+> ### Key Numbers for Table 4
+> | Metric | Value |
+> |--------|-------|
+> | F1 Macro | ? |
+> | F1 (BruteForce) | ? |
+> | F1 (PortScan) | ? |
+> | F1 (DDoS) | ? |
+> | Latency P99 (ms) | ? |
+> | Memory (MB) | ? |
+>
+> ### Narrative (1 paragraph for the paper)
+> "[Model] achieved F1 macro = X on CICIDS-2017, compared to the LR baseline of Y (+Z improvement).
+> The model particularly excelled at [attack type] detection (F1=A) but struggled with [attack type] (F1=B).
+> At P99 latency of C ms, it [meets/exceeds] the 100ms production budget.
+> This [confirms/refutes] H1 from RQ1."
+> ```
+>
+> Fill in every `?` and `[...]` with real numbers from MLflow. The narrative paragraph IS the actual text submitted to the paper.
+> **📦 Stack:** Jupyter Markdown, MLflow
+> **✅ Outcome:** Every model notebook has a completed "Research Findings" section with real numbers. The narrative paragraphs from all 6 model notebooks become the draft of §4.3 in your paper.
+
+#### Subphase 32.4 — Cross-Dataset Transfer Evaluation
+
+> **🎭 Role:** ML Research Scientist
+> **📍 Context:** RQ7 asks: "Is per-attack-type F1 consistent across four datasets?" To answer this, evaluate models trained on CICIDS-2017 against UNSW-NB15 test data (zero-shot transfer). A model with high CICIDS-2017 F1 but low UNSW-NB15 transfer F1 has overfit to dataset-specific artefacts. Run this for all 3 classical models here; deep learning models complete their rows in P34 and P35.
+> **🔧 Task:** Create `ml/notebooks/analysis/02_cross_dataset_transfer.ipynb`. For each trained classical model (LR, RF, XGBoost): (1) load the UNSW-NB15 test split (preprocessed with the CICIDS-2017 fitted pipeline using the BETH feature gap imputation strategy from Phase 13.3); (2) run `harness.evaluate(model, X_unswnb15_test, y_unswnb15_test)` using the mapped taxonomy labels; (3) record F1 macro, per-class F1 for overlapping taxonomy classes; (4) compute the **generalisation gap**: `F1_cicids − F1_unswnb15` per model.
+>
+> Build **Table 7** (for paper's §4.5):
+> | Model | CICIDS-2017 F1 | UNSW-NB15 F1 | Generalisation Gap |
+> |-------|----------------|--------------|-------------------|
+> | LR | ? | ? | ? |
+> | RF | ? | ? | ? |
+> | XGBoost | ? | ? | ? |
+>
+> Write a "Cross-Dataset Transfer Findings" section: "Classical models showed a generalisation gap of X–Y F1 points when evaluated zero-shot on UNSW-NB15. [Model] showed the smallest gap (X), suggesting [interpretation]."
+> **📦 Stack:** sklearn, mlflow, pandas, matplotlib
+> **✅ Outcome:** Table 7 (cross-dataset transfer) is completed for classical models. The deep learning models complete their rows in P34.2 and P35.3. The generalisation gap analysis informs the paper's RQ7 answer.
+
+### ✅ Learning Checkpoint — Phases 26–32
+1. You train XGBoost with Optuna for 100 trials. After finding the best hyperparameters, should you retrain on (a) training set only, (b) training + validation set, or (c) training + validation + test set? Why?
+2. Your LSTM achieves F1=0.94 on CICIDS-2017 but F1=0.71 on UNSW-NB15. What does this tell you about the LSTM's generalisation? What would you investigate first?
+3. What is the difference between: (a) the model's validation F1 during Optuna search, and (b) the model's test F1 reported in Table 4? Why must they be computed on different data?
+
+---
+
 
 ## Phase Map
 

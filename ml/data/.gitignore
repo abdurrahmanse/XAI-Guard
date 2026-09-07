@@ -7,3 +7,11 @@
 !raw/
 !processed/
 !**/.gitkeep
+
+# Never track large binary processed data files in Git.
+# These are pipeline outputs — track them with DVC instead.
+# Committing .npy / .pkl files causes index corruption and bloats git history.
+processed/*.npy
+processed/*.pkl
+processed/*.csv
+processed/*.json

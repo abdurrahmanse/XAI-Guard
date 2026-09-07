@@ -1,5 +1,5 @@
 import React from "react";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 
 export default function PricingPage() {
   return (
@@ -9,13 +9,13 @@ export default function PricingPage() {
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">No hidden fees. Just powerful threat detection for teams of all sizes.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
         {[
-          { name: "Starter", price: "$499", features: ["1M Events / month", "Basic XAI Explanations", "Community Support"] },
-          { name: "Enterprise", price: "$1,999", features: ["100M Events / month", "Full SHAP/LIME Integration", "MITRE ATT&CK Mapping", "24/7 Phone Support"], popular: true },
-          { name: "Custom", price: "Contact Us", features: ["Unlimited Events", "Custom ML Models", "Dedicated Account Manager", "On-Premises Deployment"] }
+          { name: "Starter", price: "$499", features: ["1M Events / month", "Basic XAI Explanations", "Community Support", "Data Retention: 7 Days"] },
+          { name: "Enterprise", price: "$1,999", features: ["100M Events / month", "Full SHAP/LIME Integration", "MITRE ATT&CK Mapping", "24/7 Phone Support", "Data Retention: 90 Days"], popular: true },
+          { name: "Custom", price: "Contact Us", features: ["Unlimited Events", "Custom ML Models", "Dedicated Account Manager", "On-Premises Deployment", "Infinite Retention"] }
         ].map((plan, i) => (
-          <div key={i} className={`p-8 rounded-3xl border flex flex-col gap-6 ${plan.popular ? 'border-primary shadow-lg relative' : 'border-border/50 bg-card'}`}>
+          <div key={i} className={`p-8 rounded-3xl border flex flex-col gap-6 ${plan.popular ? 'border-primary shadow-lg relative bg-primary/5' : 'border-border/50 bg-card'}`}>
             {plan.popular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</div>}
             <div>
               <h3 className="text-2xl font-bold">{plan.name}</h3>
@@ -37,6 +37,26 @@ export default function PricingPage() {
             </a>
           </div>
         ))}
+      </div>
+
+      {/* FAQ Section */}
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-3xl font-bold text-center mb-10">Frequently Asked Questions</h2>
+        <div className="space-y-4">
+          {[
+            { q: "How is an 'Event' defined?", a: "An event is a single network request or log entry processed by our ML models. Background heartbeat pings are not counted against your quota." },
+            { q: "Can we deploy XAI-Guard on-premises?", a: "Yes. Our Custom plan supports full air-gapped or on-premises deployments using Docker/Kubernetes." },
+            { q: "Do you offer a free trial?", a: "We offer a 14-day full-feature trial of the Enterprise plan with no credit card required." },
+            { q: "What happens if we exceed our event quota?", a: "We will never block your security monitoring. We'll simply alert your admin and gracefully bill for overages at the end of the month." },
+          ].map((faq, i) => (
+            <div key={i} className="border border-border/50 rounded-xl p-6 bg-card">
+              <h4 className="font-bold text-lg mb-2 flex justify-between items-center">
+                {faq.q}
+              </h4>
+              <p className="text-muted-foreground">{faq.a}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

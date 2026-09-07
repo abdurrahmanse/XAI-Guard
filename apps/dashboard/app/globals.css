@@ -2,6 +2,7 @@
 @source "../../packages/ui";
 
 @theme {
+  --font-sans: var(--font-sans, "Inter");
   --color-severity-critical: var(--severity-critical);
   --color-severity-high: var(--severity-high);
   --color-severity-medium: var(--severity-medium);

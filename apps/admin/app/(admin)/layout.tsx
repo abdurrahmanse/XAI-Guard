@@ -1,5 +1,7 @@
 import { Database, LineChart, Shield, LayoutDashboard, LogOut, Bell, Settings } from "lucide-react";
 
+import { MobileNav } from "../../components/mobile-nav";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -39,6 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Top Header */}
         <header className="h-16 border-b bg-card/50 backdrop-blur flex items-center justify-between px-6 z-10 sticky top-0">
           <div className="flex items-center">
+            <MobileNav />
             <h2 className="text-sm font-medium text-muted-foreground">MLOps & Administration</h2>
           </div>
           <div className="flex items-center gap-4">
@@ -65,3 +68,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
+// Force HMR update

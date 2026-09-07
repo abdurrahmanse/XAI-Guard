@@ -2,6 +2,7 @@
 @source "../../packages/ui";
 
 @theme {
+  --font-sans: var(--font-sans, "Inter");
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

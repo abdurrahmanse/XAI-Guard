@@ -1,5 +1,7 @@
 import { Shield, LayoutDashboard, Activity, AlertOctagon, Settings, LogOut, Bell, User } from "lucide-react";
 
+import { MobileNav } from "../../components/mobile-nav";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
@@ -40,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Top Header */}
         <header className="h-16 border-b bg-card/50 backdrop-blur flex items-center justify-between px-6 z-10 sticky top-0">
           <div className="flex items-center">
+            <MobileNav />
             <h2 className="text-sm font-medium text-muted-foreground">SOC Analyst Portal</h2>
           </div>
           <div className="flex items-center gap-4">
@@ -68,3 +71,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+// Force HMR update

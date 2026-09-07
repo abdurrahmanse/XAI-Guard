@@ -2,6 +2,7 @@
 @source "../../packages/ui";
 
 @theme {
+  --font-sans: var(--font-sans, "Inter");
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
 

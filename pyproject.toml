@@ -1,0 +1,14 @@
+[tool.pylint.master]
+ignore-patterns = [".*\\.ipynb"]
+
+[tool.pylint.messages_control]
+disable = ["import-error", "unused-import", "wrong-import-position"]
+
+[tool.pyright]
+include = ["ml/src", "ml/scripts"]
+exclude = ["**/*.ipynb"]
+reportMissingImports = false
+reportMissingModuleSource = false
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]

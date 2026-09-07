@@ -1,9 +1,9 @@
+from __future__ import annotations
 """
 services/api/app/modules/alerts/alert_service.py
 ================================================
 Alert deduplication and Redis publishing.
 """
-from __future__ import annotations
 
 import hashlib
 import logging

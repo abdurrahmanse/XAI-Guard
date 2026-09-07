@@ -1,10 +1,10 @@
+from __future__ import annotations
 """
 services/api/app/modules/explanations/tasks.py
 ==============================================
 Celery tasks for async SHAP and LIME computation.
 """
 
-from __future__ import annotations
 
 import logging
 import time

@@ -35,3 +35,12 @@ class ModelVersion(Base, PrimaryKeyMixin, TimestampMixin):
     git_sha: Mapped[str] = mapped_column(String(40))
     status: Mapped[ModelStatusEnum] = mapped_column(SQLEnum(ModelStatusEnum))
     is_shadow_active: Mapped[bool] = mapped_column(Boolean, default=False)
+
+class PromotionHistory(Base, PrimaryKeyMixin, TimestampMixin):
+    __tablename__ = "promotion_history"
+
+    model_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("model_versions.id"))
+    promoted_by: Mapped[str] = mapped_column(String)
+    promotion_reason: Mapped[str] = mapped_column(String)
+    f1_score_at_promotion: Mapped[float] = mapped_column(Float)
+    latency_at_promotion: Mapped[float] = mapped_column(Float)

@@ -1,10 +1,10 @@
+from __future__ import annotations
 """
 services/api/app/modules/explanations/router.py
 ===============================================
 Endpoints for requesting and polling async explanations.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

@@ -1,10 +1,10 @@
+from __future__ import annotations
 """
 services/api/app/modules/inference/feature_cache.py
 ===================================================
 Redis-based feature caching for O(1) latency on identical packets/flows.
 """
 
-from __future__ import annotations
 
 import hashlib
 import logging

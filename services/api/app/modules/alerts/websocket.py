@@ -1,9 +1,9 @@
+from __future__ import annotations
 """
 services/api/app/modules/alerts/websocket.py
 ============================================
 WebSocket connection manager for real-time alert delivery.
 """
-from __future__ import annotations
 
 import asyncio
 import logging

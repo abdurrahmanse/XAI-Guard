@@ -1,10 +1,10 @@
+from __future__ import annotations
 from fastapi import APIRouter
 """
 services/api/app/modules/events/router.py
 =========================================
 Event ingestion endpoints.
 """
-from __future__ import annotations
 
 router = APIRouter(prefix="/events", tags=["events"])
 import logging

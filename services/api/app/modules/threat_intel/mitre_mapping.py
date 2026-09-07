@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 services/api/app/modules/threat_intel/mitre_mapping.py
 ======================================================
@@ -5,7 +6,6 @@ Maps XAI-Guard attack taxonomy to MITRE ATT&CK techniques.
 Grounds the ML classifications in standard cybersecurity frameworks.
 """
 
-from __future__ import annotations
 
 from enum import Enum
 

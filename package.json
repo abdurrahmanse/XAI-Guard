@@ -2,7 +2,7 @@
   "name": "xai-guard",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "pnpm run kill:all && turbo run dev",
     "dev:web": "turbo run dev --filter=web",
     "dev:dashboard": "turbo run dev --filter=dashboard",
     "dev:admin": "turbo run dev --filter=admin",

@@ -1,6 +1,6 @@
-# 07 — Backend Domain Modules & Security Dashboard
+# 07 — Backend Domain Modules & Frontend Architecture
 
-> **Phases 48–55** | Events, Predictions, Explanations, Model Registry, Alerts & WebSocket, Threat Intelligence, Dashboard Foundation, and Alert Feed components.
+> **Phases 48–57** | Events, Predictions, Explanations, Model Registry, Alerts & WebSocket, Threat Intelligence, Dashboard Foundation, and Alert Feed components.
 
 ## 🗺️ Research Paper Map
 
@@ -301,117 +301,73 @@ The MITRE mapping table (PortScan → T1046, BruteForce → T1110, DDoS → T149
 
 ---
 
-## Phase 54 — Security Dashboard Foundation & Layout
+## Phase 54 — Marketing Website (`apps/web`)
 
-**Context:** The Next.js 14 App Router security analyst dashboard. Dark-mode-first, real-time, and purpose-built for SOC environments with persistent colour-coded severity signals.
-
-
-### 🎓 What You Will Learn in Phases 54–55
-You will build the analyst-facing dashboard that makes the entire system visible and usable. This teaches you: Next.js 14 App Router with RSC, TanStack Query for async data, Recharts for analytical data visualisation, and Tailwind CSS with shadcn/ui for Swiss + Minimalist enterprise UI (see `docs/design.md` for the full design system specification).
-
-### 📄 Research Paper Connection
-Phases 54–55 → **§6 + Appendix**: System demonstration screenshots. Include in your paper:
-1. The main dashboard showing CRITICAL alerts feed (demonstrates end-to-end detection)
-2. An alert detail view showing the SHAP waterfall chart (demonstrates XAI integration)
-3. The model comparison view showing Table 4 inline (demonstrates the research connection)
-
-**In your paper appendix:** "Figure A1: XAI-Guard analyst dashboard. Figure A2: Alert detail with SHAP explanation. Figure A3: Model comparison view showing Champion/Challenger status."
-
-These screenshots, combined with the system description in §6, show that your research produced a deployable system — not just offline notebook experiments.
-
-### 📖 Concept: Why a Real Dashboard Matters for a Research Paper
-Most IDS papers present only offline evaluation results (Table of F1 scores + some XAI plots). Building a live system that serves real-time predictions via a production-grade dashboard demonstrates:
-1. **Practical deployability** — the research is not just academic
-2. **End-to-end integration** — all six models, XAI, and the Champion/Challenger policy work together
-3. **Analyst-centred design** — the XAI explanations are actually surfaced to end users, not just computed
-
-This is a meaningful contribution that separates your paper from "yet another IDS benchmark paper."
-
-#### Subphase 54.1 — App Setup, Theme & Global Styles
-
-> **🎭 Role:** Senior Frontend Engineer and Design Systems Architect
-> **📍 Context:** The security dashboard is used in dark SOC environments 24/7. Every component inherits from the dark-mode-first design system. The theme is never user-changeable — SOC requirements mandate dark.
-> **🔧 Task:** Set up `apps/web/` as Next.js 14 App Router. Configure Tailwind CSS with custom CSS variables for the SOC dark palette: `--critical: 0 72% 51%`, `--high: 27 96% 61%`, `--medium: 48 96% 53%`, `--low: 213 97% 67%`, `--background: 222 47% 6%`, `--card: 222 47% 9%`. Configure `next-themes` with `defaultTheme="dark"`, `forcedTheme="dark"` (no user toggle). Set up `cn(...)` utility from `packages/ui/src/utils/cn.ts` using `clsx + tailwind-merge`. Configure `tsconfig.json` with `exactOptionalPropertyTypes: true`, `noUncheckedIndexedAccess: true`. Enable `experimental.typedRoutes: true` in `next.config.ts`.
-> **📦 Stack:** Next.js 14, Tailwind CSS v3, next-themes, clsx, tailwind-merge, CVA, TypeScript 5
-> **✅ Outcome:** `pnpm dev --filter=web` starts the dashboard in dark mode. All severity CSS variables render correctly in components. Type-safe routes prevent invalid `href` values.
-
-#### Subphase 54.2 — Authentication Guard Middleware
-
-> **🎭 Role:** Senior Full-Stack Engineer
-> **📍 Context:** All dashboard routes require a valid, non-expired JWT. Next.js middleware intercepts all requests before they reach route handlers, providing a universal auth guard with zero per-route configuration.
-> **🔧 Task:** Implement `apps/web/middleware.ts`. Read `access_token` cookie. Decode the JWT payload using `atob(token.split('.')[1])` (client-safe, no signature verification — the API verifies signatures). Check the `exp` claim: if expired or missing, redirect to `/login?next={encoded_path}`. Apply to all paths except `/login`, `/api/auth/**`, `/_next/**`, `/favicon.ico`. Implement `apps/web/app/(auth)/login/page.tsx`: React Hook Form v7 + Zod schema `{username: z.string().min(3), password: z.string().min(8)}`, calls `POST /v1/auth/login`, stores `access_token` as HttpOnly cookie via a Next.js Server Action, redirects to the `next` param.
-> **📦 Stack:** Next.js 14 Middleware, React Hook Form v7, Zod v3, shadcn/ui Input + Button
-> **✅ Outcome:** An expired JWT redirects to `/login?next=/`. Successful login sets the cookie and redirects. The login form shows field-level validation errors.
-
-#### Subphase 54.3 — Root Layout & Navigation Sidebar
-
-> **🎭 Role:** Senior Frontend Engineer
-> **📍 Context:** The sidebar is a React Server Component that reads the user's role from the JWT cookie server-side — no client-side decoding needed for this render. The collapse state is client-side only, managed by Zustand.
-> **🔧 Task:** Implement `apps/web/app/(dashboard)/layout.tsx` as a React Server Component. Renders: left sidebar with navigation links (Live Alerts `/`, Threat Details, Metrics, Model Status), user info block (username + role badge decoded from JWT cookie server-side), logout Server Action (clears cookie, redirects), `<ModelStatusBar>` client boundary. Implement the sidebar collapse: `usePreferencesStore().sidebarCollapsed` from Zustand `immer` middleware store; toggle button triggers collapse; Framer Motion `AnimatePresence` with `initial={false}` and `exit={{ width: 0 }}` for smooth animation.
-> **📦 Stack:** Next.js 14 RSC + Server Actions, Zustand v4 + immer, Framer Motion v11, Lucide React
-> **✅ Outcome:** Sidebar renders with correct user info on server. Collapse animation is smooth (60fps). Navigation links show active state using `usePathname()`.
-
-#### Subphase 54.4 — API Client & TanStack Query Hooks
-
-> **🎭 Role:** Senior React Engineer
-> **📍 Context:** All data fetching uses TanStack Query hooks with Zod-validated fetchers. The `nuqs` library synchronises filter state with URL search params, making alert filters bookmarkable.
-> **🔧 Task:** Implement dashboard-specific TanStack Query hooks in `apps/web/lib/queries/`. `useAlerts(filters: AlertFilters)`: fetches `/v1/alerts` with filter params; uses `nuqs` `useQueryStates` for URL synchronisation; `staleTime: 10_000`. `useExplanation(taskId: string)`: polls `/v1/explanations/{taskId}` every 2s with `refetchInterval: (data) => data?.status === "processing" ? 2000 : false`. `useModels()`: fetches champion + challenger; `staleTime: 30_000`. `useMetrics()`: `refetchInterval: 30_000`. Each hook uses a `zodFetcher<Schema>(url, schema)` utility that calls `schema.parse(await res.json())` and throws `ZodError` on mismatch.
-> **📦 Stack:** @tanstack/react-query v5, nuqs, Zod v3
-> **✅ Outcome:** `useExplanation` stops polling automatically when status changes to `"complete"` or `"failed"`. Alert filters in the URL survive browser refresh.
-
-#### Subphase 54.5 — WebSocket Client Context
-
-> **🎭 Role:** Senior React Engineer with real-time systems expertise
-> **📍 Context:** The WebSocket connection is a singleton per browser tab. A React context provides connection state and live messages to all consumer components without prop drilling.
-> **🔧 Task:** Implement `apps/web/contexts/websocket-context.tsx`. `WebSocketProvider` wraps the authenticated layout. Uses `reconnecting-websocket` with `maxReconnectionDelay: 10_000`, `minReconnectionDelay: 1_000`, `reconnectionDelayGrowFactor: 1.3`. On `message`: parse with `AlertWebSocketMessageSchema.safeParse(JSON.parse(e.data))`; on parse success, call `useWebSocketStore.getState().pushAlert(alert)` and increment `unreadCount`. `useWebSocketStore` (Zustand with `immer`): `status: "connecting"|"connected"|"disconnected"`, `alerts: AlertResponse[]` (max 100, FIFO), `unreadCount: number`, `clearUnread()`. Expose `useWebSocket()` hook.
-> **📦 Stack:** reconnecting-websocket, Zustand v4 + immer, Zod v3
-> **✅ Outcome:** WebSocket reconnects automatically. `unreadCount` increments correctly. `clearUnread()` resets without losing the alerts array.
+> **🎭 Role:** Growth & Marketing Engineer
+> **📍 Context:** The public-facing marketing website built with Next.js 14. This app serves as the landing page for XAI-Guard, explaining the core value proposition of Explainable AI in cybersecurity. It is entirely decoupled from the internal SOC dashboards.
+> **🔧 Task:** Scaffold `apps/web/` as a Next.js 14 App Router project. Implement a responsive, high-performance landing page (`app/page.tsx`) using Tailwind CSS. It must include: Hero section with a clear value proposition, "How it Works" section with animated diagrams of the XAI process, Features grid, and a CTA (Call to Action) leading to the documentation or sales form. This app should support both light and dark modes (via `next-themes`).
+> **📦 Stack:** Next.js 14, Tailwind CSS v4, next-themes, Framer Motion
+> **✅ Outcome:** `pnpm dev --filter=web` starts the marketing site on port 3000. It is fully responsive, SEO-optimised, and decoupled from internal authentication logic.
 
 ---
 
-## Phase 55 — Alert Feed & Threat Detail Components
+## Phase 55 — Security Dashboard Foundation (`apps/dashboard`)
 
-**Context:** The primary analyst workflow: real-time alert feed → click alert → threat detail card with XAI explanation. Performance and UX correctness here directly affects SOC response time.
+**Context:** The Next.js 14 App Router security analyst dashboard. Dark-mode-first, real-time, and purpose-built for SOC environments with persistent colour-coded severity signals.
 
-#### Subphase 55.1 — AlertsFeed with TanStack Virtual
+### 🎓 What You Will Learn in Phases 55–56
+You will build the analyst-facing dashboard that makes the entire system visible and usable. This teaches you: Next.js 14 App Router with RSC, TanStack Query for async data, Recharts for analytical data visualisation, and Tailwind CSS with shadcn/ui for Swiss + Minimalist enterprise UI.
 
+#### Subphase 55.1 — App Setup, Theme & Global Styles
+> **🎭 Role:** Senior Frontend Engineer and Design Systems Architect
+> **📍 Context:** The security dashboard is used in dark SOC environments 24/7. Every component inherits from the dark-mode-first design system.
+> **🔧 Task:** Set up `apps/dashboard/` as a Next.js 14 App Router project. Configure Tailwind CSS with custom CSS variables for the SOC dark palette: `--critical: 0 72% 51%`, `--high: 27 96% 61%`, `--medium: 48 96% 53%`, `--low: 213 97% 67%`, `--background: 222 47% 6%`. Configure `next-themes` with `defaultTheme="dark"`, `forcedTheme="dark"` (no user toggle).
+> **📦 Stack:** Next.js 14, Tailwind CSS v4, next-themes, clsx, tailwind-merge
+> **✅ Outcome:** `pnpm dev --filter=dashboard` starts the dashboard in dark mode on port 3001.
+
+#### Subphase 55.2 — Authentication Guard Middleware
+> **🎭 Role:** Senior Full-Stack Engineer
+> **📍 Context:** All dashboard routes require a valid, non-expired JWT. Next.js middleware intercepts all requests before they reach route handlers.
+> **🔧 Task:** Implement `apps/dashboard/middleware.ts`. Read `access_token` cookie. Decode the JWT payload. Check the `exp` claim: if expired or missing, redirect to `/login?next={encoded_path}`. Implement `apps/dashboard/app/(auth)/login/page.tsx` with React Hook Form.
+> **📦 Stack:** Next.js 14 Middleware, React Hook Form v7, Zod v3
+> **✅ Outcome:** An expired JWT redirects to `/login`. Successful login sets the cookie and redirects to `/`.
+
+#### Subphase 55.3 — Root Layout & Navigation Sidebar
+> **🎭 Role:** Senior Frontend Engineer
+> **📍 Context:** The sidebar is a React Server Component that reads the user's role from the JWT cookie server-side.
+> **🔧 Task:** Implement `apps/dashboard/app/(dashboard)/layout.tsx`. Renders: left sidebar with navigation links (Live Alerts, Threat Details), user info block, and a logout Server Action. Implement sidebar collapse with Zustand and Framer Motion.
+> **📦 Stack:** Next.js 14 RSC, Zustand v4, Framer Motion v11
+> **✅ Outcome:** Sidebar renders with user info on the server. Collapse animation runs at 60fps.
+
+---
+
+## Phase 56 — Alert Feed & Threat Details (`apps/dashboard`)
+
+**Context:** The primary analyst workflow: real-time alert feed → click alert → threat detail card with XAI explanation.
+
+#### Subphase 56.1 — Live AlertsFeed
 > **🎭 Role:** Senior React Performance Engineer
-> **📍 Context:** The alert feed accumulates thousands of alerts during sustained attacks. TanStack Virtual renders only visible rows, keeping the feed at 60fps regardless of total item count.
-> **🔧 Task:** Implement `apps/web/components/alerts/AlertsFeed.tsx` as a Client Component. Merge data from `useAlerts()` (server-persisted) with `useWebSocketStore().alerts` (real-time buffer). Use `@tanstack/react-virtual useVirtualizer(items, { estimateSize: () => 56, overscan: 5 })`. Auto-scroll logic: if `scrollOffset < 200`, scroll to top on new WebSocket alerts; otherwise show a Framer Motion `AnimatePresence` floating pill `"↑ {count} new alerts"` that scrolls to top on click. Each row: `SeverityBadge`, attack type icon (Lucide), source IP (monospace), confidence %, `formatDistanceToNow(alert.created_at, { addSuffix: true })`. Row click: `useAlertsStore.getState().setSelectedAlertId(alert.id)`.
-> **📦 Stack:** @tanstack/react-virtual v3, Framer Motion v11, Lucide React, date-fns v3, Zustand v4
-> **✅ Outcome:** Feed renders 10,000 alerts without jank (verified with React DevTools Profiler: render time < 16ms). Auto-scroll works correctly.
+> **📍 Context:** The alert feed accumulates thousands of alerts. TanStack Virtual renders only visible rows.
+> **🔧 Task:** Implement `apps/dashboard/components/alerts/AlertsFeed.tsx`. Merge data from `useAlerts()` with real-time WebSocket buffers. Use `@tanstack/react-virtual`. Add auto-scroll logic for new WebSocket alerts.
+> **📦 Stack:** @tanstack/react-virtual v3, Framer Motion v11, Zustand v4
+> **✅ Outcome:** Feed renders 10,000 alerts without jank. Auto-scroll works correctly.
 
-#### Subphase 55.2 — SeverityBadge Component
-
-> **🎭 Role:** Design Systems Engineer
-> **📍 Context:** The SeverityBadge is the highest-frequency rendered component. It must be accessible, visually distinct under all lighting conditions, and use CSS-only animation to avoid JavaScript runtime cost.
-> **🔧 Task:** Implement `packages/ui/src/components/severity-badge.tsx` using CVA. Variants by severity: `critical` — `animate-pulse bg-red-600 text-white`; `high` — `bg-orange-500 text-white`; `medium` — `bg-yellow-500 text-black`; `low` — `bg-blue-600 text-white`; `normal` — `bg-slate-600 text-white`. ARIA: `role="status"`, `aria-label={severity + " severity"}}`. Props: `severity: Severity`, `size: "sm"|"md"|"lg"` (controls `text-xs|text-sm|text-base` and `px-1.5|px-2|px-3`). No hooks — pure server component. Export from `packages/ui/src/index.ts`.
-> **📦 Stack:** CVA (class-variance-authority), Tailwind CSS v3, TypeScript 5
-> **✅ Outcome:** `<SeverityBadge severity="critical" />` renders with pulsing red and correct `aria-label`. Component passes all Storybook a11y checks.
-
-#### Subphase 55.3 — ThreatDetailPanel
-
-> **🎭 Role:** Senior Frontend Engineer with security domain knowledge
-> **📍 Context:** The ThreatDetailPanel is the centrepiece of the analyst workflow. It shows everything an analyst needs to understand and respond to a threat in one view, without switching context.
-> **🔧 Task:** Implement `apps/web/components/alerts/ThreatDetailPanel.tsx` using shadcn/ui `Sheet` (slide from right). Triggered when `useAlertsStore().selectedAlertId !== null`. Fetches `useAlert(selectedAlertId)`. Sections: (1) header — attack type icon + name + `SeverityBadge` + confidence %; (2) source IP + destination IP with copy-to-clipboard (shadcn/ui `Button` + `navigator.clipboard.writeText`); (3) **Why this alert?** — `FeatureContributionBars` component with top-4 SHAP features; (4) **Recommended Actions** — numbered list from MITRE recommended_actions field; (5) **MITRE ATT&CK** — `MITREBadge`; (6) **XAI Details** link → `/alerts/{id}/xai`; (7) **Acknowledge** button — `useMutation` on `PATCH /v1/alerts/{id}/acknowledge` with optimistic update.
-> **📦 Stack:** shadcn/ui Sheet, @tanstack/react-query v5 useMutation, Lucide React
-> **✅ Outcome:** Panel slides in within 200ms. Acknowledge button shows optimistic `acknowledged` state immediately.
-
-#### Subphase 55.4 — FeatureContributionBars Component
-
+#### Subphase 56.2 — ThreatDetailPanel & SHAP Visualisation
 > **🎭 Role:** Senior Frontend Data Visualisation Engineer
-> **📍 Context:** The SHAP feature contribution bars are the primary XAI output that analysts read. They must be immediately interpretable without statistical training, using colour and size to convey the information.
-> **🔧 Task:** Implement `packages/ui/src/components/feature-contribution-bar.tsx`. Props: `contributions: FeatureContribution[]` (top 4 items). For each contribution: left column — feature name truncated to 20 chars with shadcn/ui `Tooltip` showing the full name on hover; middle column — horizontal bar with `width = (Math.abs(shap_value) / maxAbsSHAP) * 100 + "%"`, `backgroundColor` is `#EF4444` if SHAP value > 0 (increases threat confidence) or `#3B82F6` if < 0 (decreases); right column — `{(Math.abs(shap_value) * 100).toFixed(1)}%`. Add `aria-label="Feature contribution: {name}, {direction} {pct}% impact"` on each bar.
-> **📦 Stack:** shadcn/ui Tooltip, Tailwind CSS v3, CVA
-> **✅ Outcome:** The top SHAP feature bar is the widest. Red bars increase threat confidence. Blue bars decrease it. Screen reader labels are descriptive.
+> **📍 Context:** The ThreatDetailPanel is the centrepiece of the analyst workflow. SHAP feature contribution bars are the primary XAI output.
+> **🔧 Task:** Implement `apps/dashboard/components/alerts/ThreatDetailPanel.tsx` using a slide-out `Sheet`. Integrate `FeatureContributionBars` showing the top-4 SHAP features. Red bars increase threat confidence, blue bars decrease it. Add MITRE ATT&CK recommended actions.
+> **📦 Stack:** shadcn/ui, Tailwind CSS v4, Lucide React
+> **✅ Outcome:** Panel slides in seamlessly. XAI insights are perfectly interpretable.
 
-#### Subphase 55.5 — MITREBadge & Alert Component Tests
+---
 
-> **🎭 Role:** Senior Frontend Test Engineer
-> **📍 Context:** Component tests with React Testing Library verify correctness of critical UI components. These tests run in CI on every pull request.
-> **🔧 Task:** Implement `packages/ui/src/components/mitre-badge.tsx`: renders `technique_id — technique_name` in `font-mono text-xs` with Lucide `ExternalLink` icon, clicking opens `attack_url` with `window.open(url, "_blank", "noopener,noreferrer")`. Then write `apps/web/tests/alerts.test.tsx` using React Testing Library + vitest. Test: (1) AlertsFeed renders existing alerts from `useAlerts` mock; (2) simulating a WebSocket message via the context adds an alert to the top; (3) clicking an alert sets `selectedAlertId` and renders ThreatDetailPanel; (4) SeverityBadge renders with `animate-pulse` class for CRITICAL; (5) FeatureContributionBars renders bars with widths proportional to SHAP magnitudes; (6) MITREBadge link has `rel="noopener noreferrer"`.
-> **📦 Stack:** React Testing Library, vitest, @testing-library/user-event
-> **✅ Outcome:** All 6 component tests pass. Tests run in under 10 seconds in CI.
+## Phase 57 — Admin Console & Model Management (`apps/admin`)
+
+> **🎭 Role:** Internal Tools & MLOps Engineer
+> **📍 Context:** The Admin Console is a highly privileged Next.js application used by Senior Data Scientists and system administrators. It manages the Champion/Challenger model lifecycle and user roles.
+> **🔧 Task:** Scaffold `apps/admin/` as a separate Next.js 14 App Router project. Implement strict Role-Based Access Control (RBAC) middleware ensuring only `role === 'admin'` can access the app. Build the Model Registry Dashboard (`app/models/page.tsx`) to visualize the promotion history, trigger manual promotions, and monitor Challenger vs Champion drift.
+> **📦 Stack:** Next.js 14, Recharts, TanStack Query
+> **✅ Outcome:** `pnpm dev --filter=admin` starts the admin console on port 3002. Non-admin JWTs are instantly rejected by middleware. 
 
 ---
 
@@ -425,7 +381,9 @@ This is a meaningful contribution that separates your paper from "yet another ID
 | P51 | Model Registry Module | 3 |
 | P52 | Alerts & WebSocket Module | 4 |
 | P53 | Threat Intelligence Module | 3 |
-| P54 | Dashboard Foundation & Layout | 5 |
-| P55 | Alert Feed & Threat Detail | 5 |
+| P54 | Marketing Website (`apps/web`) | 1 |
+| P55 | Dashboard Foundation (`apps/dashboard`) | 3 |
+| P56 | Alert Feed & Details (`apps/dashboard`) | 2 |
+| P57 | Admin Console (`apps/admin`) | 1 |
 
-**Previous ←** [06 — LIME, XAI Evaluation & Backend Core](06-backend-and-frontend-engineering.md) | **Next →** [08 — Admin Panel, MLOps & Production](08-production-deployment-and-roadmap.md)
+**Previous ←** [06 — LIME, XAI Evaluation & Backend Core](06-backend-and-frontend-engineering.md) | **Next →** [08 — Production Deployment & Roadmap](08-production-deployment-and-roadmap.md)

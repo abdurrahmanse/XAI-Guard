@@ -1,9 +1,9 @@
+from __future__ import annotations
 """
 services/api/app/modules/events/storage.py
 ==========================================
 Bulk PostgreSQL insertion for security events.
 """
-from __future__ import annotations
 
 import time
 import logging

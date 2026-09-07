@@ -1,9 +1,9 @@
+from __future__ import annotations
 """
 services/api/app/modules/events/queue.py
 ========================================
 Redis Streams integration for durable event queuing.
 """
-from __future__ import annotations
 
 import logging
 import uuid

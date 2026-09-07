@@ -1,9 +1,9 @@
+from __future__ import annotations
 """
 services/api/app/modules/inference/model_service.py (Phase 49.1)
 ================================================================
 Champion model singleton with background hot-reload capability.
 """
-from __future__ import annotations
 
 import asyncio
 import logging

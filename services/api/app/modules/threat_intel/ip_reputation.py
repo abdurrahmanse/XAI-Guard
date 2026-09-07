@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 services/api/app/modules/threat_intel/ip_reputation.py
 ======================================================
@@ -5,7 +6,6 @@ Integration with AbuseIPDB and Tor exit node tracking.
 Uses Tenacity for retries and Redis for caching to adhere to strict latency budgets.
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Optional

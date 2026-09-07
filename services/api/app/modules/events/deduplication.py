@@ -1,10 +1,10 @@
+from __future__ import annotations
 """
 services/api/app/modules/events/deduplication.py
 ================================================
 Event deduplication using Redis.
 Prevents the same network flow from generating multiple alerts.
 """
-from __future__ import annotations
 
 import hashlib
 from typing import Any

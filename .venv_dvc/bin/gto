@@ -1,0 +1,6 @@
+#!/Volumes/Fullstack/Github/XAI-Guard/.venv_dvc/bin/python3.11
+import sys
+from gto.cli import app
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(app())

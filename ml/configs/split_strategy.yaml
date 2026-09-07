@@ -1,0 +1,25 @@
+nslkdd:
+  strategy: official
+  train_file: KDDTrain+.txt
+  test_file: KDDTest+.txt
+  val_fraction_of_train: 0.15  # held out from training set
+cicids2017:
+  strategy: stratified_random
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  seed: 42
+  stratify_on: unified_label
+unswnb15:
+  strategy: stratified_random
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  seed: 42
+beth:
+  strategy: temporal
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  sort_column: timestamp
+  sort_order: ascending

@@ -200,3 +200,50 @@ $RECYCLE.BIN/
 
 # Misc
 .directory
+
+# --------------------------
+# Machine Learning & Data
+# --------------------------
+# Ignore all raw and processed data (handled by DVC)
+ml/data/raw/*
+!ml/data/raw/*.dvc
+!ml/data/raw/.gitignore
+ml/data/interim/
+ml/data/processed/
+ml/data/features/
+ml/data/selected/
+ml/data/splits/
+ml/models/trained/
+
+# MLflow tracking
+ml/mlruns/
+mlruns/
+*.sqlite
+mlruns.db
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+ml/notebooks/.ipynb_checkpoints/
+
+# DVC
+.dvc/cache
+.dvc/tmp
+.dvc/config.local
+
+# Python Environments & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+ml/.venv_dvc/
+.env
+
+# OS & Editor
+.DS_Store
+.vscode/
+.idea/

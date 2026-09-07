@@ -1,9 +1,10 @@
+import type { Metadata } from "next";
+import { Providers } from "./providers";
 import "./globals.css";
-import { ThemeProvider } from "../components/common/theme-provider";
 
-export const metadata = {
-  title: "XAI-Guard",
-  description: "Explainable AI Cybersecurity",
+export const metadata: Metadata = {
+  title: "XAI-Guard SOC Dashboard",
+  description: "Real-time AI-powered Intrusion Detection System",
 };
 
 export default function RootLayout({
@@ -13,10 +14,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+      <body className="antialiased font-sans">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

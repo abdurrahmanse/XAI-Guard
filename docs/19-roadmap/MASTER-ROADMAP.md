@@ -12,16 +12,16 @@
 | PHASE 01 — Product Foundation | 01.08 Model Comparison Strategy | [x] |
 | PHASE 01 — Product Foundation | 01.09 Success Criteria | [x] |
 | PHASE 01 — Product Foundation | 01.10 Phase Validation | [x] |
-| PHASE 02 — User Journey | 02.01 User Persona: Security Analyst | [ ] |
-| PHASE 02 — User Journey | 02.02 User Persona: ML Engineer | [ ] |
-| PHASE 02 — User Journey | 02.03 User Persona: Admin | [ ] |
-| PHASE 02 — User Journey | 02.04 Data Ingestion Flow | [ ] |
-| PHASE 02 — User Journey | 02.05 Threat Detection Flow | [ ] |
-| PHASE 02 — User Journey | 02.06 Threat Investigation Flow | [ ] |
-| PHASE 02 — User Journey | 02.07 Model Comparison Flow | [ ] |
-| PHASE 02 — User Journey | 02.08 Reporting Flow | [ ] |
-| PHASE 02 — User Journey | 02.09 System Configuration Flow | [ ] |
-| PHASE 02 — User Journey | 02.10 Phase Validation | [ ] |
+| PHASE 02 — User Journey | 02.01 User Persona: Security Analyst | [x] |
+| PHASE 02 — User Journey | 02.02 User Persona: ML Engineer | [x] |
+| PHASE 02 — User Journey | 02.03 User Persona: Admin | [x] |
+| PHASE 02 — User Journey | 02.04 Data Ingestion Flow | [x] |
+| PHASE 02 — User Journey | 02.05 Threat Detection Flow | [x] |
+| PHASE 02 — User Journey | 02.06 Threat Investigation Flow | [x] |
+| PHASE 02 — User Journey | 02.07 Model Comparison Flow | [x] |
+| PHASE 02 — User Journey | 02.08 Reporting Flow | [x] |
+| PHASE 02 — User Journey | 02.09 System Configuration Flow | [x] |
+| PHASE 02 — User Journey | 02.10 Phase Validation | [x] |
 | PHASE 03 — System Architecture | 03.01 Existing Architecture Audit | [ ] |
 | PHASE 03 — System Architecture | 03.02 Application Boundaries | [ ] |
 | PHASE 03 — System Architecture | 03.03 Backend Architecture | [ ] |

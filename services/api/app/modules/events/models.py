@@ -1,8 +1,12 @@
-from sqlalchemy import Integer, Float, BigInteger, String, Enum as SQLEnum, Index
-from sqlalchemy.dialects.postgresql import JSONB, INET
-from sqlalchemy.orm import Mapped, mapped_column
-from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
 import enum
+
+from sqlalchemy import BigInteger, Float, Index, Integer, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import INET, JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
+
 
 class ProtocolEnum(str, enum.Enum):
     TCP = "TCP"

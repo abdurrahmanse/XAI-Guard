@@ -160,9 +160,9 @@ class JWTService:
             If the token is expired, malformed, missing required claims,
             or signed with the wrong secret.
         """
-        from app.core.exceptions import CredentialsException
-
         from jose import JWTError
+
+        from app.core.exceptions import CredentialsException
 
         try:
             raw = self._jwt.decode(token, self.secret_key, algorithms=[self.algorithm])

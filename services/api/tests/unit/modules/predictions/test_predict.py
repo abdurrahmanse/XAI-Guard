@@ -1,9 +1,11 @@
 """Unit tests for prediction domain — SeverityEnum and XAIStatusEnum."""
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../../.."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../../../app"))
 
-from app.modules.inference.models import SeverityEnum, XAIStatusEnum, XAIMethodEnum
+from app.modules.inference.models import SeverityEnum, XAIMethodEnum, XAIStatusEnum
 
 
 def test_severity_enum_has_four_levels():

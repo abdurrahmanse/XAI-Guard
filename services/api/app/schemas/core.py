@@ -1,9 +1,11 @@
-from pydantic import BaseModel, ConfigDict, Field, IPvAnyAddress, UUID4
-from typing import Literal, Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Literal, Optional
+
+from pydantic import UUID4, BaseModel, Configdict, Field, IPvAnyAddress
+
 
 class BaseSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = Configdict(from_attributes=True, populate_by_name=True)
 
 class SecurityEventInputSchema(BaseSchema):
     source_ip: IPvAnyAddress
@@ -16,9 +18,9 @@ class SecurityEventInputSchema(BaseSchema):
     bytes_sent: int = Field(ge=0)
     bytes_received: int = Field(ge=0)
     packet_count: int = Field(ge=0)
-    tcp_flags: Dict[str, bool] = Field(default_factory=dict)
+    tcp_flags: dict[str, bool] = Field(default_factory=dict)
     service: str = Field(max_length=64)
-    features: Dict[str, float]
+    features: dict[str, float]
     dataset_source: Literal["NSL_KDD", "CICIDS_2017", "UNSW_NB15", "BETH", "LIVE"]
 
 class PredictionResponseSchema(BaseSchema):
@@ -26,14 +28,14 @@ class PredictionResponseSchema(BaseSchema):
     event_id: UUID4
     predicted_class: str
     confidence_score: float = Field(ge=0.0, le=1.0)
-    class_probabilities: Dict[str, float]
+    class_probabilities: dict[str, float]
     severity_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
     inference_latency_ms: float
     is_shadow: bool
-    explanation_task_id: Optional[str] = None
+    explanation_task_id: str | None = None
     created_at: datetime
 
 class FeatureVectorSchema(BaseSchema):
-    features: List[float] = Field(min_length=1, max_length=1024)
-    feature_names: List[str]
+    features: list[float] = Field(min_length=1, max_length=1024)
+    feature_names: list[str]
     vector_hash: str

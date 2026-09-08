@@ -1,9 +1,13 @@
-from sqlalchemy import Integer, Float, String, Boolean, ForeignKey, Enum as SQLEnum, Index
+import uuid
+
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
 from app.modules.inference.models import SeverityEnum
-import uuid
+
 
 class Alert(Base, PrimaryKeyMixin, TimestampMixin):
     __tablename__ = "alerts"

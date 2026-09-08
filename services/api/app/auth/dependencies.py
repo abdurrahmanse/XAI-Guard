@@ -23,9 +23,9 @@ from typing import Annotated
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 
+from app.auth.jwt_service import JWTService, TokenPayload
 from app.core.config import get_settings
 from app.core.exceptions import CredentialsException, PermissionDeniedException
-from app.auth.jwt_service import JWTService, TokenPayload
 
 logger = logging.getLogger("xaiguard.auth")
 

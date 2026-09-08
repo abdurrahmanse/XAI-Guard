@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/threat_intel/mitre_mapping.py
 ======================================================
@@ -9,9 +10,9 @@ Grounds the ML classifications in standard cybersecurity frameworks.
 
 from enum import Enum
 
+from pydantic import BaseModel
 
 from app.core.exceptions import ResourceNotFoundException
-from pydantic import BaseModel
 
 
 class AttackType(str, Enum):

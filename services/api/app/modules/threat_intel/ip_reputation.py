@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/threat_intel/ip_reputation.py
 ======================================================
@@ -22,7 +23,7 @@ logger = logging.getLogger("xaiguard.threat_intel")
 class IPReputationResult(BaseModel):
     ip: str
     abuse_confidence_score: int
-    country_code: Optional[str]
+    country_code: str | None
     is_tor_exit: bool
 
 

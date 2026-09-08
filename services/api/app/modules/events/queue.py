@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/events/queue.py
 ========================================

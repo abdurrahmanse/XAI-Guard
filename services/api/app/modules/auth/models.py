@@ -1,10 +1,14 @@
-from sqlalchemy import String, Boolean, ForeignKey, Enum as SQLEnum, Index, DateTime
-from sqlalchemy.dialects.postgresql import JSONB, INET
-from sqlalchemy.orm import Mapped, mapped_column
-from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
+import datetime
 import enum
 import uuid
-import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import INET, JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
+
 
 class UserRoleEnum(str, enum.Enum):
     ANALYST = "ANALYST"

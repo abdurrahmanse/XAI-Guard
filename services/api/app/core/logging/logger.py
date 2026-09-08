@@ -1,14 +1,15 @@
-import structlog
 import logging
+import uuid
 from contextvars import ContextVar
 from typing import Any, Dict
-import uuid
+
+import structlog
 
 # Context variables for tracing
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 user_id_var: ContextVar[str] = ContextVar("user_id", default="")
 
-def add_context_vars(logger: logging.Logger, method_name: str, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+def add_context_vars(logger: logging.Logger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     req_id = request_id_var.get()
     if req_id:
         event_dict["request_id"] = req_id

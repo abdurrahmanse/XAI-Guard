@@ -1,9 +1,13 @@
-from sqlalchemy import Integer, Float, String, Boolean, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
-from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
 import enum
 import uuid
+
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
+
 
 class ModelFrameworkEnum(str, enum.Enum):
     SKLEARN = "SKLEARN"

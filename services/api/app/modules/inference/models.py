@@ -1,9 +1,13 @@
-from sqlalchemy import Float, String, Boolean, ForeignKey, Enum as SQLEnum, Index
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
-from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
 import enum
 import uuid
+
+from sqlalchemy import Boolean, Float, ForeignKey, Index, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
+
 
 class SeverityEnum(str, enum.Enum):
     LOW = "LOW"

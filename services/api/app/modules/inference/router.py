@@ -7,13 +7,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio.client import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.redis_client import get_redis
-from app.modules.inference.feature_cache import FeatureCache
 from app.modules.events.router import SecurityEventInput
+from app.modules.inference.feature_cache import FeatureCache
 
 logger = logging.getLogger("xaiguard.inference")
 

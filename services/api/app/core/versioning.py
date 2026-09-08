@@ -1,6 +1,8 @@
-from functools import wraps
-from fastapi import Response
 from datetime import datetime
+from functools import wraps
+
+from fastapi import Response
+
 
 def deprecated(sunset_date: str, alternative: str):
     def decorator(func):

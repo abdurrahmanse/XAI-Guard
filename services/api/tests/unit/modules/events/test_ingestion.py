@@ -1,7 +1,3 @@
-"""Unit tests for security event ingestion — protocol enums and field validation."""
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../../.."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../../../app"))
 """
 services/api/tests/unit/modules/events/test_ingestion.py
 ========================================================
@@ -9,8 +5,8 @@ Test suite for event ingestion, deduplication, storage, and queuing.
 """
 from __future__ import annotations
 
-from app.modules.events.models import ProtocolEnum, DatasetSourceEnum
 import pytest
+from app.modules.events.models import DatasetSourceEnum, ProtocolEnum
 from httpx import AsyncClient
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession

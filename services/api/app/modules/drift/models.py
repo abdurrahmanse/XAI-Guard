@@ -1,9 +1,12 @@
-from sqlalchemy import Float, Boolean, ForeignKey, Enum as SQLEnum, Index
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+import uuid
+
 from app.core.database import Base, PrimaryKeyMixin, TimestampMixin
 from app.modules.events.models import DatasetSourceEnum
-import uuid
+from sqlalchemy import Boolean, Float, ForeignKey, Index
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
 
 class DriftReport(Base, PrimaryKeyMixin, TimestampMixin):
     __tablename__ = "drift_reports"

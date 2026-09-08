@@ -1,20 +1,19 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
+from app.core.database import Base
+from app.modules.alerts.models import Alert
+from app.modules.auth.models import AuditLog, User
+from app.modules.drift.models import DriftReport
+
+# Import all ORM models for autogenerate
+from app.modules.events.models import SecurityEvent
+from app.modules.inference.models import Prediction, XAIExplanation
+from app.modules.registry.models import ModelVersion
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
-
-from app.core.database import Base
-# Import all ORM models for autogenerate
-from app.modules.events.models import SecurityEvent
-from app.modules.registry.models import ModelVersion
-from app.modules.inference.models import Prediction, XAIExplanation
-from app.modules.alerts.models import Alert
-from app.modules.auth.models import User, AuditLog
-from app.modules.drift.models import DriftReport
 
 config = context.config
 

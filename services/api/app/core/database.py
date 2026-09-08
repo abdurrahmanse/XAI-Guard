@@ -1,9 +1,11 @@
-from typing import AsyncGenerator
 import uuid
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import declarative_base, declared_attr, Mapped, mapped_column
-from sqlalchemy import text, DateTime
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Mapped, declarative_base, declared_attr, mapped_column
+
 from app.core.config import settings
 
 engine = create_async_engine(

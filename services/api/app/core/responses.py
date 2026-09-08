@@ -1,12 +1,13 @@
-from typing import Generic, TypeVar, Optional, Any
+from typing import Any, Generic, Optional, TypeVar
+
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
 class StandardResponse(BaseModel, Generic[T]):
     success: bool = True
-    data: Optional[T] = None
-    error: Optional[str] = None
+    data: T | None = None
+    error: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
 
 def success_response(data: T, **meta) -> StandardResponse[T]:

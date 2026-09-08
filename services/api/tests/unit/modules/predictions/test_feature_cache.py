@@ -1,7 +1,6 @@
 """Unit tests for feature cache — key generation and TTL logic."""
 import hashlib
 
-
 # ── Inline cache key logic (mirrors the production implementation) ────────────
 CACHE_TTL_SECONDS = 300  # 5 minutes for feature vectors
 

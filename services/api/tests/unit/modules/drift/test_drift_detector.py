@@ -1,7 +1,6 @@
 """Unit tests for drift detection — PSI calculation and threshold rules."""
 import math
 
-
 # ── PSI (Population Stability Index) computation ──────────────────────────────
 # Mirrors the production drift detector logic.
 # PSI < 0.10  → No significant drift (stable)

@@ -1,6 +1,7 @@
 """Phase 53.3 - Threat Intel Tests"""
 import pytest
-from app.modules.threat_intel.mitre_mapping import get_mitre_info, AttackType
+from app.modules.threat_intel.mitre_mapping import AttackType, get_mitre_info
+
 
 def test_mitre_mapping():
     info = get_mitre_info(AttackType.DDOS)

@@ -7,7 +7,7 @@ from celery import shared_task
 from sqlalchemy import select
 
 from app.core.database import SessionLocal
-from app.modules.registry.models import ModelVersion, ModelStatusEnum, PromotionHistory
+from app.modules.registry.models import ModelStatusEnum, ModelVersion, PromotionHistory
 
 logger = logging.getLogger("xaiguard.registry")
 

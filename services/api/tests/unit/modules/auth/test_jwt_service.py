@@ -1,10 +1,9 @@
 """Unit tests for JWT service — token structure, expiry, and signature."""
-import time
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 import json
-
+import time
 
 # ── Minimal JWT helpers (mirrors the production JWT service logic) ─────────────
 SECRET = "test-secret-key-not-for-production"

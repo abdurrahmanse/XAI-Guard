@@ -2,6 +2,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_predict_endpoint_success(async_client: AsyncClient):
     payload = {
@@ -17,7 +18,8 @@ async def test_predict_endpoint_success(async_client: AsyncClient):
         "features": {"f1": 0.5}
     }
     resp = await async_client.post("/v1/inference/predict", json=payload)
-    if resp.status_code == 404: return
+    if resp.status_code == 404:
+        return
     assert resp.status_code == 200
     data = resp.json()
     assert "prediction_id" in data

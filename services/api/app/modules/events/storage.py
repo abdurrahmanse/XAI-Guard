@@ -1,21 +1,22 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/events/storage.py
 ==========================================
 Bulk PostgreSQL insertion for security events.
 """
 
-import time
 import logging
-from typing import Any
+import time
 import uuid
+from typing import Any
 
 import asyncpg
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.events.models import SecurityEvent
 from app.core.exceptions import ServiceUnavailableException
+from app.modules.events.models import SecurityEvent
 
 logger = logging.getLogger("xaiguard.events")
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/explanations/tasks.py
 ==============================================
@@ -9,7 +10,6 @@ Celery tasks for async SHAP and LIME computation.
 import logging
 import time
 
-from celery import shared_task
 from celery import shared_task
 
 logger = logging.getLogger("xaiguard.explanations")

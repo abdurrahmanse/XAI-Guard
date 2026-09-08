@@ -4,6 +4,7 @@ A robust factory-boy implementation will be built in the specific Data phase.
 This script demonstrates the structure.
 """
 import asyncio
+
 from rich.console import Console
 
 console = Console()

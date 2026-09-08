@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/alerts/websocket.py
 ============================================
@@ -7,9 +8,9 @@ WebSocket connection manager for real-time alert delivery.
 
 import asyncio
 import logging
-import orjson
-from typing import Dict
 
+
+import orjson
 from fastapi import WebSocket, WebSocketDisconnect
 from redis.asyncio.client import Redis
 
@@ -26,9 +27,9 @@ class ConnectionManager:
 
     def __init__(self):
         # Maps connection_id (str) to WebSocket object
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.active_connections: dict[str, WebSocket] = {}
         # Maps connection_id to its listener Task
-        self.listener_tasks: Dict[str, asyncio.Task] = {}
+        self.listener_tasks: dict[str, asyncio.Task] = {}
 
     async def connect(self, websocket: WebSocket, token: str, redis: Redis) -> str | None:
         """

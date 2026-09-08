@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import UserContext, get_current_user, require_admin
 from app.core.database import get_db
-from app.auth.dependencies import get_current_user, require_admin, UserContext
-from app.modules.registry.models import ModelVersion, ModelStatusEnum, PromotionHistory
+from app.modules.registry.models import ModelStatusEnum, ModelVersion, PromotionHistory
 
 logger = logging.getLogger("xaiguard.registry")
 

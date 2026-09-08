@@ -12,16 +12,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from redis.asyncio.client import Redis
-
-from app.core.exceptions import CredentialsException
-from app.core.redis_client import get_redis
-from app.auth.jwt_service import JWTService, TokenResponse
-from app.auth.dependencies import get_jwt_service, get_current_user, UserContext
 
 # We mock a DB here for the purpose of the architecture since we haven't 
 # built the users table yet in Phase 47. In a real system, you query the DB.
 from passlib.context import CryptContext
+from redis.asyncio.client import Redis
+
+from app.auth.dependencies import UserContext, get_current_user, get_jwt_service
+from app.auth.jwt_service import JWTService, TokenResponse
+from app.core.exceptions import CredentialsException
+from app.core.redis_client import get_redis
 
 logger = logging.getLogger("xaiguard.auth")
 
@@ -76,6 +76,8 @@ async def login(
 
 
 from pydantic import BaseModel
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

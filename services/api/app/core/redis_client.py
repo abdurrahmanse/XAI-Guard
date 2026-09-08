@@ -16,15 +16,16 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import AsyncGenerator, Type, TypeVar
+from collections.abc import AsyncGenerator
+from typing import Type, TypeVar
 
 try:
     import orjson
 except ImportError:
     import json as orjson
 
-from pydantic import BaseModel
 import redis.asyncio as redis
+from pydantic import BaseModel
 from redis.asyncio.client import Redis
 
 from app.core.config import get_settings
@@ -81,7 +82,7 @@ async def cache_set(key: str, value: BaseModel, ttl: int, client: Redis) -> None
         logger.warning("Failed to cache set key=%s: %s", key, exc)
 
 
-async def cache_get(key: str, model_class: Type[T], client: Redis) -> T | None:
+async def cache_get(key: str, model_class: type[T], client: Redis) -> T | None:
     """
     Retrieve and deserialize a Pydantic model from Redis.
     """

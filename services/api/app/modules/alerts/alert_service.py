@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/alerts/alert_service.py
 ================================================
@@ -9,12 +10,13 @@ import hashlib
 import logging
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
-from redis.asyncio.client import Redis
 import orjson
+from redis.asyncio.client import Redis
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.alerts.models import Alert
+
 # Assuming Prediction model is available in inference
 # from app.modules.inference.models import Prediction
 
@@ -48,7 +50,7 @@ class AlertService:
         # In a strict implementation, we would also add a time bound to the query.
         stmt = select(Alert).where(
             Alert.dedup_hash == dedup_hash,
-            Alert.acknowledged == False
+            Alert.acknowledged.is_(False)
         ).with_for_update(skip_locked=True)
         
         result = await db.execute(stmt)

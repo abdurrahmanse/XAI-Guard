@@ -1,4 +1,5 @@
 import logging
+
 from app.core.celery_app import celery_app
 from app.core.config import settings
 
@@ -18,9 +19,9 @@ def run_training_pipeline(force: bool = False):
     try:
         # Import heavy ML/Data dependencies locally to keep workers light if they don't need it
         import dvc.api
-        from dvc.repo import Repo
         import mlflow
         import xgboost as xgb
+        from dvc.repo import Repo
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
         

@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from fastapi import APIRouter
+
 """
 services/api/app/modules/events/router.py
 =========================================
@@ -10,20 +12,21 @@ router = APIRouter(prefix="/events", tags=["events"])
 import logging
 from typing import Annotated
 
+
 @router.get("/")
 async def get_events():
     return {"message": "events router active"}
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio.client import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.redis_client import get_redis
 from app.modules.events.deduplication import EventDeduplicator
-from app.modules.events.storage import EventStorageService
-from app.modules.events.queue import EventQueuePublisher
 from app.modules.events.models import ProtocolEnum
+from app.modules.events.queue import EventQueuePublisher
+from app.modules.events.storage import EventStorageService
 
 logger = logging.getLogger("xaiguard.events")
 

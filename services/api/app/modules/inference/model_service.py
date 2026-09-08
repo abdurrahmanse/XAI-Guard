@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 services/api/app/modules/inference/model_service.py (Phase 49.1)
 ================================================================
@@ -27,7 +28,7 @@ class ChampionModelService:
         self._reload_task = None
 
     @classmethod
-    def get_instance(cls) -> "ChampionModelService":
+    def get_instance(cls) -> ChampionModelService:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -54,7 +55,6 @@ class ChampionModelService:
             # In a real app, query DB for CHAMPION status
             # If changed, download MLflow artifacts to staging
             # Then acquire lock and swap self.model atomically.
-            pass
 
     def predict_proba(self, features: list[float]) -> tuple[str, float]:
         """Run inference."""

@@ -1,12 +1,13 @@
-import asyncio
 import argparse
+import asyncio
 import sys
 import time
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+
 import asyncpg
 import httpx
 import redis.asyncio as redis
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 console = Console()
 

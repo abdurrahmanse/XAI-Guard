@@ -1,15 +1,16 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from prometheus_fastapi_instrumentator import Instrumentator
 import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.config import settings
+from app.modules.alerts.router import router as alerts_router
 
 # Module Routers
 from app.modules.events.router import router as events_router
 from app.modules.inference.router import router as inference_router
 from app.modules.registry.router import router as registry_router
-from app.modules.alerts.router import router as alerts_router
 from app.modules.training.router import router as training_router
 
 logger = logging.getLogger(__name__)

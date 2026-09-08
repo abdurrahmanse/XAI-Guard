@@ -5,7 +5,7 @@ import { Activity } from "lucide-react";
 
 export function SignupForm({ appName }: { appName: string }) {
   return (
-    <div className="w-full max-w-md bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden">
+    <div className="w-full max-w-[400px] bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden">
       <div className="p-6 sm:p-8">
         <div className="flex justify-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">

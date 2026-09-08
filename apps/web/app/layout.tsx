@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* Footer */}
           <footer className="border-t border-border/40 bg-card py-12 px-6">
-            <div className="container mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="w-full max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
               <div className="col-span-2">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="h-5 w-5 text-primary" />
@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </ul>
               </div>
             </div>
-            <div className="container mx-auto max-w-7xl mt-12 pt-8 border-t border-border/40 text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center">
+            <div className="w-full max-w-7xl mx-auto mt-12 pt-8 border-t border-border/40 text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center">
               <p>© 2026 XAI-Guard Enterprise. All rights reserved.</p>
               <div className="flex gap-4 mt-4 md:mt-0">
                 <Link href="/" className="hover:text-foreground transition-colors">Privacy Policy</Link>

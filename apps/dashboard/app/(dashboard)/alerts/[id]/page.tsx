@@ -36,7 +36,7 @@ export default function PredictionDetailsPage({ params }: { params: { id: string
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Alert: {params.id.split("-")[0]}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Alert: {React.use(params).id.split("-")[0]}</h1>
             <SeverityBadge severity="CRITICAL" />
           </div>
           <p className="text-muted-foreground">Detected at 2026-09-08 14:32:01 UTC</p>

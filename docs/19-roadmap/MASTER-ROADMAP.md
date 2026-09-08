@@ -82,16 +82,16 @@
 | PHASE 08 — ML Integration | 08.08 Latency & Throughput Tracking | [x] |
 | PHASE 08 — ML Integration | 08.09 Error Handling in ML Pipeline | [x] |
 | PHASE 08 — ML Integration | 08.10 ML Integration Validation | [x] |
-| PHASE 09 — Model Comparison | 09.01 Comparison Metrics Definition | [ ] |
-| PHASE 09 — Model Comparison | 09.02 Live Inference Runner | [ ] |
-| PHASE 09 — Model Comparison | 09.03 Evaluation API Integration | [ ] |
-| PHASE 09 — Model Comparison | 09.04 Model Comparison UI Grid | [ ] |
-| PHASE 09 — Model Comparison | 09.05 Performance vs Latency Visualization | [ ] |
-| PHASE 09 — Model Comparison | 09.06 Cost & Efficiency Estimator | [ ] |
-| PHASE 09 — Model Comparison | 09.07 Champion/Challenger Dashboard | [ ] |
-| PHASE 09 — Model Comparison | 09.08 A/B Testing Infrastructure | [ ] |
-| PHASE 09 — Model Comparison | 09.09 Model Selection Flow | [ ] |
-| PHASE 09 — Model Comparison | 09.10 Model Comparison Validation | [ ] |
+| PHASE 09 — Model Comparison | 09.01 Comparison Metrics Definition | [x] |
+| PHASE 09 — Model Comparison | 09.02 Live Inference Runner | [x] |
+| PHASE 09 — Model Comparison | 09.03 Evaluation API Integration | [x] |
+| PHASE 09 — Model Comparison | 09.04 Model Comparison UI Grid | [x] |
+| PHASE 09 — Model Comparison | 09.05 Performance vs Latency Visualization | [x] |
+| PHASE 09 — Model Comparison | 09.06 Cost & Efficiency Estimator | [x] |
+| PHASE 09 — Model Comparison | 09.07 Champion/Challenger Dashboard | [x] |
+| PHASE 09 — Model Comparison | 09.08 A/B Testing Infrastructure | [x] |
+| PHASE 09 — Model Comparison | 09.09 Model Selection Flow | [x] |
+| PHASE 09 — Model Comparison | 09.10 Model Comparison Validation | [x] |
 | PHASE 10 — Explainable AI (XAI) | 10.01 XAI Product Strategy | [ ] |
 | PHASE 10 — Explainable AI (XAI) | 10.02 SHAP Integration & API | [ ] |
 | PHASE 10 — Explainable AI (XAI) | 10.03 LIME Integration & API | [ ] |

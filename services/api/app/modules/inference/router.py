@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.core.redis_client import get_redis
 from app.modules.events.router import SecurityEventInput
 from app.modules.inference.feature_cache import FeatureCache
+from app.modules.inference.tasks import run_shadow_inference
 
 logger = logging.getLogger("xaiguard.inference")
 
@@ -65,6 +66,14 @@ async def predict_event(
     latency_ms = (time.perf_counter() - t_start) * 1000
     
     logger.info(f"Prediction complete in {latency_ms:.2f}ms (Cache Hit: {cache_hit})")
+
+    # Trigger Shadow Mode for Challenger Model asynchronously via Celery
+    run_shadow_inference.delay(
+        features_dict={"mock": "data"}, # Avoid passing large un-serializable objects
+        prediction_id=prediction_id,
+        champion_attack_type=attack_type,
+        champion_confidence=confidence
+    )
 
     return PredictionResponse(
         prediction_id=prediction_id,

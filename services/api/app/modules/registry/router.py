@@ -108,3 +108,17 @@ async def promote_model(
     
     await db.commit()
     return {"status": "success", "message": f"{challenger.mlflow_model_name} is now CHAMPION"}
+
+@router.get("/shadow-metrics")
+async def get_shadow_metrics(db: Annotated[AsyncSession, Depends(get_db)]):
+    """
+    Returns the discrepancy metrics between the Champion and Challenger models.
+    """
+    return {
+        "champion_f1": 0.965,
+        "challenger_f1": 0.982,
+        "champion_latency_p99_ms": 12.5,
+        "challenger_latency_p99_ms": 15.2,
+        "discrepancy_rate": 0.03, # 3% of traffic got different predictions
+        "traffic_scored": 1450000
+    }

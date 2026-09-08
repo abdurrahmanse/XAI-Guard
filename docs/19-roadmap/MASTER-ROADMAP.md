@@ -22,16 +22,16 @@
 | PHASE 02 — User Journey | 02.08 Reporting Flow | [x] |
 | PHASE 02 — User Journey | 02.09 System Configuration Flow | [x] |
 | PHASE 02 — User Journey | 02.10 Phase Validation | [x] |
-| PHASE 03 — System Architecture | 03.01 Existing Architecture Audit | [ ] |
-| PHASE 03 — System Architecture | 03.02 Application Boundaries | [ ] |
-| PHASE 03 — System Architecture | 03.03 Backend Architecture | [ ] |
-| PHASE 03 — System Architecture | 03.04 Frontend Architecture | [ ] |
-| PHASE 03 — System Architecture | 03.05 ML Boundary | [ ] |
-| PHASE 03 — System Architecture | 03.06 Database Boundary | [ ] |
-| PHASE 03 — System Architecture | 03.07 API Flow | [ ] |
-| PHASE 03 — System Architecture | 03.08 Security Boundary | [ ] |
-| PHASE 03 — System Architecture | 03.09 Observability Strategy | [ ] |
-| PHASE 03 — System Architecture | 03.10 Architecture Validation | [ ] |
+| PHASE 03 — System Architecture | 03.01 Existing Architecture Audit | [x] |
+| PHASE 03 — System Architecture | 03.02 Application Boundaries | [x] |
+| PHASE 03 — System Architecture | 03.03 Backend Architecture | [x] |
+| PHASE 03 — System Architecture | 03.04 Frontend Architecture | [x] |
+| PHASE 03 — System Architecture | 03.05 ML Boundary | [x] |
+| PHASE 03 — System Architecture | 03.06 Database Boundary | [x] |
+| PHASE 03 — System Architecture | 03.07 API Flow | [x] |
+| PHASE 03 — System Architecture | 03.08 Security Boundary | [x] |
+| PHASE 03 — System Architecture | 03.09 Observability Strategy | [x] |
+| PHASE 03 — System Architecture | 03.10 Architecture Validation | [x] |
 | PHASE 04 — Database Foundation | 04.01 Database Architecture & Technology Selection | [ ] |
 | PHASE 04 — Database Foundation | 04.02 Users & Roles Schema | [ ] |
 | PHASE 04 — Database Foundation | 04.03 Datasets & Data Versions Schema | [ ] |
